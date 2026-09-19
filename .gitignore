@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/dry-run/
+
+# next.js
+web/.next/
+web/out/
+.vercel/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# os
+.DS_Store
