@@ -843,3 +843,17 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 @media (min-width: 1100px) {
   .gallery:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
 }
+
+.received { margin-top: 14px; display: grid; gap: 7px; }
+.received-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.received-name { font-weight: 580; }
+.received-amt { color: var(--ink-dim); font-size: 0.82rem; }

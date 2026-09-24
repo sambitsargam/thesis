@@ -82,6 +82,16 @@ constituents at a 3,333 bps target weight each.
 Baskets are minted with [USD₮0](https://www.oklink.com/xlayer/address/0x779Ded0c9e1022225f8E0630b35a9b54bE713736)
 (`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`, 6 decimals).
 
+### Redeeming returns the underlying, not USD₮0
+
+`redeem` burns shares and transfers each constituent pro rata. It needs no price and
+no venue, so it cannot fail on slippage or a missing route — the claim is simply a
+fraction of what the contract holds.
+
+Tokenized equities are not in any wallet's default token list, so the balances arrive
+invisibly unless the token is added. The app prompts the wallet to add them
+(EIP-747 `wallet_watchAsset`) after both minting and redeeming.
+
 ## OKX integration
 
 | Piece | How Thesis uses it |

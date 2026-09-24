@@ -37,13 +37,15 @@ const REDEEM_STEPS = [
 ];
 
 export default function ActionPanel(props: Props) {
-  const {account, client, discover} = useWallet();
+  const {account, client, wallet, discover} = useWallet();
   const [mode, setMode] = useState<Mode>("mint");
   const [amount, setAmount] = useState("3");
   const [phase, setPhase] = useState<Phase>("idle");
   const [txHash, setTxHash] = useState("");
   const [error, setError] = useState("");
   const [balances, setBalances] = useState<{quote: string; shares: string} | null>(null);
+  const [received, setReceived] = useState<Array<{ticker: string; address: string; amount: number}>>([]);
+  const [watched, setWatched] = useState<string[]>([]);
 
   const readBalances = useCallback(async () => {
     if (!account) return setBalances(null);
@@ -89,6 +91,29 @@ export default function ActionPanel(props: Props) {
     setPhase("idle");
     setTxHash("");
     setError("");
+    setReceived([]);
+  }
+
+  /**
+   * Asks the wallet to display a token (EIP-747).
+   *
+   * Redeeming returns tokenized equities, which no wallet lists by default, so
+   * without this the underlying arrives invisibly and reads as a failed sale.
+   */
+  async function addToWallet(token: {ticker: string; address: string}) {
+    if (!wallet) return;
+    try {
+      await wallet.provider.request({
+        method: "wallet_watchAsset",
+        params: {
+          type: "ERC20",
+          options: {address: token.address, symbol: token.ticker, decimals: 18}
+        } as unknown as unknown[]
+      });
+      setWatched((current) => [...current, token.address]);
+    } catch {
+      // Declining the prompt is a normal outcome, not an error worth showing.
+    }
   }
 
   function setMax() {
@@ -157,6 +182,15 @@ export default function ActionPanel(props: Props) {
   async function runRedeem() {
     const shares = parseUnits(amount, 18);
     if (shares <= 0n) throw new Error("Enter an amount above zero.");
+
+    // Record the claim now so the receipt can name what the wallet just received.
+    setReceived(
+      props.holdings.map((holding) => ({
+        ticker: holding.ticker,
+        address: holding.address,
+        amount: Number(holding.perShare) * Number(amount)
+      }))
+    );
 
     // Redemption is in kind and needs no venue: the claim is a share of what is held.
     const data = encodeFunctionData({
@@ -286,9 +320,45 @@ export default function ActionPanel(props: Props) {
             </div>
             <p className="status" style={{marginTop: 6}}>
               {mode === "mint"
-                ? "Your shares are backed by the equities the basket just bought."
-                : "The underlying equities are back in your wallet."}
+                ? "Your shares are backed by the equities the basket just bought. Add the token to see them in your wallet."
+                : "The underlying equities are in your wallet now. Most wallets hide unknown tokens — add them to see the balances."}
             </p>
+
+            {mode === "mint" && (
+              <div className="received">
+                <div className="received-row">
+                  <span className="received-name">{props.symbol}</span>
+                  <span className="tnum received-amt">your new shares</span>
+                  <button
+                    className="ghost small"
+                    onClick={() =>
+                      void addToWallet({ticker: props.symbol, address: props.basket})
+                    }
+                    disabled={watched.includes(props.basket)}
+                  >
+                    {watched.includes(props.basket) ? "Added" : "Add to wallet"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mode === "redeem" && received.length > 0 && (
+              <div className="received">
+                {received.map((token) => (
+                  <div className="received-row" key={token.address}>
+                    <span className="received-name">{token.ticker}</span>
+                    <span className="tnum received-amt">{token.amount.toFixed(9)}</span>
+                    <button
+                      className="ghost small"
+                      onClick={() => void addToWallet(token)}
+                      disabled={watched.includes(token.address)}
+                    >
+                      {watched.includes(token.address) ? "Added" : "Add to wallet"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <a
               className="mono link"
               href={`https://www.oklink.com/xlayer/tx/${txHash}`}
