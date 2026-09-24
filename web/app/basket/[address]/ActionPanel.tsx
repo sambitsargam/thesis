@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useState} from "react";
 import {encodeFunctionData, parseUnits} from "viem";
-import {erc20Abi, thesisBasketAbi} from "@thesis/shared";
+import {erc20Abi, thesisBasketAbi, thesisZapAbi} from "@thesis/shared";
 import {useWallet} from "../../WalletProvider";
 
 const QUOTE_DECIMALS = 6;
@@ -24,6 +24,7 @@ interface Props {
 }
 
 type Mode = "mint" | "redeem";
+type Payout = "quote" | "kind";
 type Phase = "idle" | "quoting" | "approving" | "sending" | "done";
 
 const MINT_STEPS = [
@@ -36,9 +37,18 @@ const REDEEM_STEPS = [
   {key: "sending" as const, label: "Burning shares and returning the underlying"}
 ];
 
+const SELL_STEPS = [
+  {key: "quoting" as const, label: "Pricing each constituent back to USD₮0"},
+  {key: "approving" as const, label: "Approving your shares"},
+  {key: "sending" as const, label: "Burning shares and selling the underlying"}
+];
+
+const ZAP = process.env.NEXT_PUBLIC_ZAP_ADDRESS as `0x${string}` | undefined;
+
 export default function ActionPanel(props: Props) {
   const {account, client, wallet, discover} = useWallet();
   const [mode, setMode] = useState<Mode>("mint");
+  const [payout, setPayout] = useState<Payout>("quote");
   const [amount, setAmount] = useState("3");
   const [phase, setPhase] = useState<Phase>("idle");
   const [txHash, setTxHash] = useState("");
@@ -76,8 +86,9 @@ export default function ActionPanel(props: Props) {
     if (!account) setBalances(null);
   }, [account]);
 
+  const sellsForCash = mode === "redeem" && payout === "quote" && Boolean(ZAP);
   const busy = phase === "quoting" || phase === "approving" || phase === "sending";
-  const steps = mode === "mint" ? MINT_STEPS : REDEEM_STEPS;
+  const steps = mode === "mint" ? MINT_STEPS : sellsForCash ? SELL_STEPS : REDEEM_STEPS;
   const order: Phase[] = ["idle", "quoting", "approving", "sending", "done"];
 
   const stateOf = (key: Phase) => {
@@ -126,6 +137,7 @@ export default function ActionPanel(props: Props) {
     reset();
     try {
       if (mode === "mint") await runMint();
+      else if (sellsForCash) await runSellForQuote();
       else await runRedeem();
       setPhase("done");
       props.onChanged?.();
@@ -203,8 +215,51 @@ export default function ActionPanel(props: Props) {
     setTxHash(await client!.sendTransaction({account: account!, chain: null, to: props.basket, data}));
   }
 
+  /** Burn shares and take USD₮0 out, selling every constituent in one transaction. */
+  async function runSellForQuote() {
+    if (!ZAP) throw new Error("Sell-for-cash is not configured on this deployment.");
+    const shares = parseUnits(amount, 18);
+    if (shares <= 0n) throw new Error("Enter an amount above zero.");
+
+    // Quote each constituent for the amount this redemption will release.
+    const legs = props.holdings.map((holding) => ({
+      token: holding.address,
+      amount: parseUnits(
+        (Number(holding.perShare) * Number(amount)).toFixed(18),
+        18
+      ).toString()
+    }));
+
+    setPhase("quoting");
+    const response = await fetch("/api/quote", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({legs, direction: "sell"})
+    });
+    const body = (await response.json()) as {quotes?: Array<{data: `0x${string}`}>; error?: string};
+    if (!response.ok || !body.quotes) throw new Error(body.error ?? "Could not price the sale.");
+
+    setPhase("approving");
+    await client!.writeContract({
+      account: account!,
+      chain: null,
+      address: props.basket,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [ZAP, shares]
+    });
+
+    setPhase("sending");
+    const data = encodeFunctionData({
+      abi: thesisZapAbi,
+      functionName: "sellForQuote",
+      args: [props.basket, shares, body.quotes.map((q) => q.data), 0n]
+    });
+    setTxHash(await client!.sendTransaction({account: account!, chain: null, to: ZAP, data}));
+  }
+
   const preview =
-    mode === "redeem" && amount
+    mode === "redeem" && payout === "kind" && amount
       ? props.holdings.map((holding) => ({
           ticker: holding.ticker,
           amount: Number(holding.perShare) * (Number(amount) || 0)
@@ -248,8 +303,35 @@ export default function ActionPanel(props: Props) {
         <p className="panel-lede">
           {mode === "mint"
             ? "One transaction buys every constituent at market and holds it."
-            : "Burn shares and take the underlying equities out, pro rata. No price needed, no slippage."}
+            : sellsForCash
+              ? "Burn shares, sell every constituent at market, and take USD₮0 out — in one transaction."
+              : "Burn shares and take the underlying equities out, pro rata. No price needed, no slippage."}
         </p>
+
+        {mode === "redeem" && ZAP && (
+          <div className="pills" style={{marginTop: 14}}>
+            <button
+              className="pill"
+              aria-pressed={payout === "quote"}
+              onClick={() => {
+                setPayout("quote");
+                reset();
+              }}
+            >
+              Receive USD₮0
+            </button>
+            <button
+              className="pill"
+              aria-pressed={payout === "kind"}
+              onClick={() => {
+                setPayout("kind");
+                reset();
+              }}
+            >
+              Receive the equities
+            </button>
+          </div>
+        )}
 
         {!account ? (
           <button onClick={() => void discover()} style={{marginTop: 18}}>
@@ -297,7 +379,9 @@ export default function ActionPanel(props: Props) {
                     : "Sell more"
                   : mode === "mint"
                     ? `Buy ${props.symbol}`
-                    : `Redeem ${props.symbol}`}
+                    : sellsForCash
+                      ? `Sell for USD₮0`
+                      : `Redeem ${props.symbol}`}
             </button>
           </>
         )}
@@ -321,7 +405,9 @@ export default function ActionPanel(props: Props) {
             <p className="status" style={{marginTop: 6}}>
               {mode === "mint"
                 ? "Your shares are backed by the equities the basket just bought. Add the token to see them in your wallet."
-                : "The underlying equities are in your wallet now. Most wallets hide unknown tokens — add them to see the balances."}
+                : sellsForCash
+                  ? "USD₮0 is back in your wallet."
+                  : "The underlying equities are in your wallet now. Most wallets hide unknown tokens — add them to see the balances."}
             </p>
 
             {mode === "mint" && (
@@ -342,7 +428,7 @@ export default function ActionPanel(props: Props) {
               </div>
             )}
 
-            {mode === "redeem" && received.length > 0 && (
+            {mode === "redeem" && payout === "kind" && received.length > 0 && (
               <div className="received">
                 {received.map((token) => (
                   <div className="received-row" key={token.address}>

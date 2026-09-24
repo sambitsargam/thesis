@@ -135,3 +135,19 @@ export const erc20Abi = [
   {type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{type: "uint8"}]},
   {type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{type: "string"}]}
 ] as const;
+
+export const thesisZapAbi = [
+  {
+    type: "function",
+    name: "sellForQuote",
+    stateMutability: "nonpayable",
+    inputs: [
+      {name: "basket", type: "address"},
+      {name: "shares", type: "uint256"},
+      {name: "swapData", type: "bytes[]"},
+      {name: "minQuoteOut", type: "uint256"}
+    ],
+    outputs: [{name: "quoteOut", type: "uint256"}]
+  },
+  {type: "function", name: "router", stateMutability: "view", inputs: [], outputs: [{type: "address"}]}
+] as const;

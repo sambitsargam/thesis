@@ -81,7 +81,7 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
  * make those baskets permanently unmintable.
  */
 export async function fetchSwapQuotes(
-  legs: Array<{token: string; amount: bigint}>,
+  legs: Array<{token: string; amount: bigint; from?: string}>,
   common: {chainId: number; fromToken: string; slippagePercent: string; holder: string}
 ): Promise<SwapQuote[]> {
   const quotes: SwapQuote[] = [];
@@ -91,8 +91,9 @@ export async function fetchSwapQuotes(
       await withRetry(() =>
         fetchSwapQuote({
           chainId: common.chainId,
-          fromToken: common.fromToken,
-          toToken: leg.token,
+          // A sell leg overrides the direction: constituent in, quote token out.
+          fromToken: leg.from ?? common.fromToken,
+          toToken: leg.from ? common.fromToken : leg.token,
           amount: leg.amount,
           slippagePercent: common.slippagePercent,
           holder: common.holder
