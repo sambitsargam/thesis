@@ -5,6 +5,7 @@ import type {LiveBasket} from "../../api/basket/route";
 import {AnimatedNumber, Bar, Flash, Reveal} from "../../motion";
 import {useLiveBasket} from "../../useLiveBasket";
 import ActionPanel from "./ActionPanel";
+import YourPosition from "./YourPosition";
 
 interface Props {
   basket: `0x${string}`;
@@ -69,15 +70,23 @@ export default function LiveBasketView(props: Props) {
         />
       </section>
 
+      <YourPosition
+        basket={props.basket}
+        symbol={props.symbol}
+        supply={data.supply}
+        holdings={data.holdings}
+        refreshKey={data.blockNumber}
+      />
+
       <section className="section">
         <div className="section-head">
-          <h2>Holdings</h2>
+          <h2>What backs each share</h2>
           <span className="note">
             {supply === 0 ? (
               "Nothing minted yet"
             ) : (
               <>
-                Per whole share · block <span className="tnum">{data.blockNumber}</span>
+                Basket composition · block <span className="tnum">{data.blockNumber}</span>
               </>
             )}
           </span>

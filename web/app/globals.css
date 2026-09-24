@@ -640,3 +640,17 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   .account-pill { font-size: 0.85rem; }
   .hero h1 { font-size: clamp(1.9rem, 8vw, 2.4rem); }
 }
+
+/* ============================================================== your position */
+
+.position-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+.position-value { font-size: 1.55rem; font-weight: 660; letter-spacing: -0.03em; }
+.position-label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.07em; text-transform: uppercase; margin-top: 3px; }
+.position-claim { margin-top: 18px; }

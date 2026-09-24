@@ -66,6 +66,14 @@ export default function ActionPanel(props: Props) {
     return () => clearInterval(timer);
   }, [readBalances]);
 
+  // A receipt belongs to the account that produced it: clear it on any change.
+  useEffect(() => {
+    setPhase("idle");
+    setTxHash("");
+    setError("");
+    if (!account) setBalances(null);
+  }, [account]);
+
   const busy = phase === "quoting" || phase === "approving" || phase === "sending";
   const steps = mode === "mint" ? MINT_STEPS : REDEEM_STEPS;
   const order: Phase[] = ["idle", "quoting", "approving", "sending", "done"];
