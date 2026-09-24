@@ -15,6 +15,7 @@ contracts/broadcast/**/run-[0-9]*.json
 
 # next.js
 web/.next/
+web/.next-check/
 web/out/
 .vercel/
 
