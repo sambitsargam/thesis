@@ -55,19 +55,20 @@ export default async function Home() {
     <>
       <main>
       <section className="hero">
-        <Reveal>
-        <h1>
-          Turn a theme into <em>one holdable asset</em>.
-        </h1>
-        <p>
-          Buying a diversified position in tokenized equities means many swaps, many fees and
-          manual rebalancing forever. Thesis deploys the whole basket as a single ERC-20 —
-          fully backed, minted in one transaction, redeemable for the underlying at any time.
-        </p>
+        {/* Three direct children so the wide-screen grid has cells to place. */}
+        <Reveal className="hero-copy">
+          <h1>
+            Turn a theme into <em>one holdable asset</em>.
+          </h1>
+          <p>
+            Buying a diversified position in tokenized equities means many swaps, many fees
+            and manual rebalancing forever. Thesis deploys the whole basket as a single
+            ERC-20 — fully backed, minted in one transaction, redeemable for the underlying
+            at any time.
+          </p>
+        </Reveal>
 
-        <HeroDiagram
-          tickers={baskets[0]?.tickers ?? ["NVDAx", "TSLAx", "SPYx"]}
-        />
+        <HeroDiagram tickers={baskets[0]?.tickers ?? ["NVDAx", "TSLAx", "SPYx"]} />
 
         <dl className="stats">
           <div className="stat">
@@ -93,7 +94,6 @@ export default async function Home() {
             <dd>1:1 real</dd>
           </div>
         </dl>
-        </Reveal>
       </section>
 
       <section className="section">
