@@ -1,0 +1,3 @@
+# The web app does not need the Solidity project; skipping it keeps builds fast.
+contracts/
+agent/

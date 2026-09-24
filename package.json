@@ -6,12 +6,13 @@
   "description": "Permissionless index launchpad for tokenized equities on X Layer",
   "packageManager": "pnpm@8.15.4",
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @thesis/web build",
     "typecheck": "pnpm -r typecheck",
     "test:contracts": "forge test --root contracts",
     "build:contracts": "forge build --root contracts",
     "fmt:contracts": "forge fmt --root contracts",
-    "check": "pnpm build:contracts && pnpm test:contracts && pnpm typecheck"
+    "check": "pnpm build:contracts && pnpm test:contracts && pnpm typecheck",
+    "build:all": "pnpm -r build"
   },
   "devDependencies": {
     "typescript": "^5.6.3",

@@ -134,6 +134,35 @@ Verify attribution on any transaction with the
 [Builder Code checker](https://builder-code.vercel.app/checker), or read it beside
 the txn hash on OKLink.
 
+## Live app
+
+Deployed on Vercel from this repository. The web app is a read-and-sign client: it
+holds **no private key**, and signing always happens in the visitor's wallet.
+
+### Deploying
+
+Vercel builds the whole workspace from the repository root, so `@thesis/shared` is
+resolved the same way it is locally.
+
+```bash
+vercel link          # once, to attach the project
+vercel --prod        # deploy
+```
+
+Environment variables to set in the Vercel project:
+
+| Variable | Why |
+| --- | --- |
+| `OKX_API_KEY` | Signs quote requests to Onchain OS Trade |
+| `OKX_API_SECRET` | Same |
+| `OKX_API_PASSPHRASE` | Same |
+| `NEXT_PUBLIC_BUILDER_CODE` | ERC-8021 attribution, public by design |
+| `XLAYER_RPC_URL` | Optional. Defaults to `https://rpc.xlayer.tech` |
+
+**Never set `DEPLOYER_PRIVATE_KEY` on Vercel.** Nothing server-side signs a
+transaction: quotes are fetched with the OKX credentials, chain reads are public,
+and every write is signed by the visitor's own wallet.
+
 ## Development
 
 Requirements: Node 20+, pnpm 8+, Foundry.
