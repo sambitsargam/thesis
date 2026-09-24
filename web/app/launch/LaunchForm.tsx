@@ -216,6 +216,22 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
             </div>
           )}
 
+          <div className="picker-count">
+            <span>
+              {searching
+                ? "Searching…"
+                : total === null
+                  ? `${results.length} shown`
+                  : query
+                    ? `${results.length} match${results.length === 1 ? "" : "es"} for “${query}”`
+                    : `Showing ${results.length} of ${total} — scroll, or search to narrow`}
+            </span>
+            {!query && total !== null && results.length < total && (
+              <span>Type a ticker or company name</span>
+            )}
+          </div>
+
+          <div className="picker-wrap">
           <div className="picker">
             {results.map((token) => {
               const on = picked.includes(token.address);
@@ -232,6 +248,7 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
                 </button>
               );
             })}
+          </div>
           </div>
 
           {results.length === 0 && !searching && (
