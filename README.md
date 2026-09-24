@@ -44,6 +44,7 @@ Live on **X Layer mainnet (chain 196)**, deployed 24 September 2026 in block 714
 | `ThesisFactory` | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
 | `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
 | `THESIS-TECH` basket | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
+| `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
 
 ### Proven on mainnet
 
@@ -91,6 +92,14 @@ fraction of what the contract holds.
 Tokenized equities are not in any wallet's default token list, so the balances arrive
 invisibly unless the token is added. The app prompts the wallet to add them
 (EIP-747 `wallet_watchAsset`) after both minting and redeeming.
+
+Holders who want cash instead can sell through **`ThesisZap`**, which burns shares,
+redeems in kind and sells every constituent through Onchain OS Trade in a single
+transaction. It is a peripheral contract, deliberately not part of `ThesisBasket`:
+baskets are immutable once deployed, and keeping the optional path outside them means
+a routing failure can never block a basket's own redeem. The zap holds nothing between
+calls, returns anything a route declined to take in kind, and refuses any basket whose
+router differs from its own.
 
 ## OKX integration
 
