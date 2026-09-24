@@ -57,7 +57,35 @@ export const thesisBasketAbi = [
     inputs: [],
     outputs: [{type: "address"}]
   },
-  {type: "function", name: "router", stateMutability: "view", inputs: [], outputs: [{type: "address"}]}
+  {type: "function", name: "router", stateMutability: "view", inputs: [], outputs: [{type: "address"}]},
+  {type: "function", name: "agent", stateMutability: "view", inputs: [], outputs: [{type: "address"}]},
+  {
+    type: "function",
+    name: "rebalance",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "legs",
+        type: "tuple[]",
+        components: [
+          {name: "tokenIn", type: "address"},
+          {name: "tokenOut", type: "address"},
+          {name: "amountIn", type: "uint256"},
+          {name: "minAmountOut", type: "uint256"},
+          {name: "swapData", type: "bytes"}
+        ]
+      }
+    ],
+    outputs: [{name: "amountsOut", type: "uint256[]"}]
+  },
+  {
+    type: "event",
+    name: "Rebalanced",
+    inputs: [
+      {name: "caller", type: "address", indexed: true},
+      {name: "amountsOut", type: "uint256[]", indexed: false}
+    ]
+  }
 ] as const;
 
 export const thesisFactoryAbi = [

@@ -906,3 +906,20 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   margin: 2px 0 8px;
   flex-wrap: wrap;
 }
+
+.rationale {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  font-size: 0.92rem;
+  animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rationale-model {
+  display: inline-block;
+  margin-top: 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}

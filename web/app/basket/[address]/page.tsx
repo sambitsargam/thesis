@@ -22,6 +22,12 @@ export default async function BasketPage({params}: {params: Promise<{address: st
     publicClient.getBlockNumber()
   ]);
 
+  const agent = await publicClient.readContract({
+    address: basket,
+    abi: thesisBasketAbi,
+    functionName: "agent"
+  });
+
   const [, units] = nav;
 
   const holdings = await Promise.all(
@@ -71,6 +77,7 @@ export default async function BasketPage({params}: {params: Promise<{address: st
           quoteToken={deployment.quoteToken}
           constituents={constituents}
           initial={initial}
+          agent={agent}
           explorerBase={explorer("")}
         />
 

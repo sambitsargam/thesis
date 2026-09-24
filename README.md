@@ -69,6 +69,36 @@ The basket now holds real equities, redeemable in kind at any time:
 Shares were minted at exactly `minSharesOut`, so nothing was lost to slippage on
 the way in.
 
+### Resolving a theme with AI
+
+`POST /api/resolve` turns plain language into constituents. The model is handed the
+real catalogue of 639 equities and told to choose only from it; every ticker it
+returns is then matched back against that catalogue and anything unrecognised is
+discarded. A hallucinated ticker would deploy a basket that could never be minted,
+and constituents are fixed at deployment — so the check is not optional.
+
+```
+"semiconductor supply chain"
+  -> AMATx, ADIx, AVGOx, INTCx, MUx, ONx, TXNx, LRCXx, MPWRx, MCHPx
+"clean energy transition"
+  -> NEEx, CEGx, AEPx, XELx, CMSx, AWKx, PPLx, AMTx
+```
+
+Run it from the terminal with `pnpm --filter @thesis/agent resolve "your theme"`.
+
+### Rebalancing
+
+Equal weight is a statement about value, so a basket drifts as its holdings move.
+`POST /api/rebalance` prices every constituent from executable OKX routes, computes
+drift against the equal-weight target, pairs the most overweight against the most
+underweight, and returns signed-ready legs. Below 25 bps of drift it declines to
+trade, because the spread would cost more than the correction is worth.
+
+The agent submits the plan to `rebalance(Leg[])`. The contract still enforces its own
+invariants: only the agent may call it, every leg must carry a floor price, and the
+basket must end holding no quote token — so a rebalance can trade badly but can never
+move value out.
+
 ### Available constituents
 
 X Layer carries **639 tokenized equities**, read from

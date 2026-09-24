@@ -7,6 +7,7 @@ import {AnimatedNumber, Bar, Flash, Reveal} from "../../motion";
 import {usd, usePrices} from "../../usePrices";
 import {useLiveBasket} from "../../useLiveBasket";
 import ActionPanel from "./ActionPanel";
+import RebalancePanel from "./RebalancePanel";
 import YourPosition from "./YourPosition";
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   quoteToken: `0x${string}`;
   constituents: readonly `0x${string}`[];
   initial: LiveBasket;
+  agent: `0x${string}`;
   explorerBase: string;
 }
 
@@ -100,6 +102,18 @@ export default function LiveBasketView(props: Props) {
         refreshKey={data.blockNumber}
       />
       </div>
+
+      <RebalancePanel
+        basket={props.basket}
+        agent={props.agent}
+        tickerFor={Object.fromEntries(
+          data.holdings.map((h) => [h.address.toLowerCase(), h.ticker])
+        )}
+        onRebalanced={() => {
+          void refresh();
+          setTimeout(() => void refresh(), 3000);
+        }}
+      />
 
       <section className="section">
         <div className="section-head">

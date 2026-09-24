@@ -32,6 +32,9 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
   const known = useRef(new Map<string, TokenizedEquity>(XSTOCKS.map((t) => [t.address, t])));
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [rationale, setRationale] = useState("");
+  const [model, setModel] = useState("");
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{hash: string; basket?: string} | null>(null);
 
@@ -69,6 +72,50 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
           ? current
           : [...current, address]
     );
+  }
+
+  /**
+   * Asks the model to turn the theme into constituents.
+   *
+   * Selection happens server-side against the real catalogue, and anything the
+   * model invents is dropped there — a hallucinated ticker would deploy a basket
+   * that could never be minted.
+   */
+  async function resolveWithAi() {
+    if (!theme.trim()) {
+      setError("Describe the theme first.");
+      return;
+    }
+    setResolving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/resolve", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({theme})
+      });
+      const body = (await response.json()) as {
+        name?: string;
+        symbol?: string;
+        rationale?: string;
+        model?: string;
+        constituents?: TokenizedEquity[];
+        error?: string;
+      };
+      if (!response.ok || !body.constituents) throw new Error(body.error ?? "Could not resolve.");
+
+      for (const token of body.constituents) known.current.set(token.address, token);
+      setPicked(body.constituents.map((t) => t.address));
+      setResults(body.constituents);
+      setQuery("");
+      if (body.symbol) setSymbol(body.symbol);
+      setRationale(body.rationale ?? "");
+      setModel(body.model ?? "");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not resolve the theme.");
+    } finally {
+      setResolving(false);
+    }
   }
 
   function applyPreset(preset: (typeof PRESETS)[number]) {
@@ -163,6 +210,21 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
             onChange={(e) => setTheme(e.target.value)}
           />
         </div>
+
+        <div className="controls" style={{marginTop: 12}}>
+          <button onClick={resolveWithAi} disabled={resolving || !theme.trim()}>
+            {resolving ? "Choosing equities…" : "Pick equities with AI"}
+          </button>
+          <span className="avail">or start from a preset</span>
+        </div>
+
+        {rationale && (
+          <div className="rationale">
+            <div className="preview-title">Why these {picked.length}</div>
+            <p style={{margin: 0}}>{rationale}</p>
+            {model && <span className="rationale-model">{model}</span>}
+          </div>
+        )}
 
         <div className="pills" style={{marginTop: 12}}>
           {PRESETS.map((preset) => (
