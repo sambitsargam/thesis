@@ -654,3 +654,57 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .position-value { font-size: 1.55rem; font-weight: 660; letter-spacing: -0.03em; }
 .position-label { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.07em; text-transform: uppercase; margin-top: 3px; }
 .position-claim { margin-top: 18px; }
+
+/* ================================================================== picker */
+
+.picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+
+.pick {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "ticker mark" "name mark";
+  gap: 0 10px;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 11px;
+  padding: 12px 14px;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.pick:hover { border-color: var(--accent-dim); opacity: 1; }
+.pick[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); }
+.pick-ticker { grid-area: ticker; font-weight: 620; }
+.pick-name { grid-area: name; color: var(--muted); font-size: 0.82rem; font-weight: 440; }
+.pick-mark {
+  grid-area: mark;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.pick[aria-pressed="true"] .pick-mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.pills button.pill { cursor: pointer; text-align: left; }
+.pills button.pill:hover { border-color: var(--accent-dim); color: var(--ink); opacity: 1; }
+
+.nav-cta { font-size: 0.9rem; padding: 9px 15px; }
+
+.mine {
+  display: inline-block;
+  margin-left: 9px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 620;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  padding: 2px 8px;
+  vertical-align: 2px;
+}

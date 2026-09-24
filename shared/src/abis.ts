@@ -76,6 +76,20 @@ export const thesisFactoryAbi = [
   {type: "function", name: "baskets", stateMutability: "view", inputs: [], outputs: [{type: "address[]"}]},
   {
     type: "function",
+    name: "creatorOf",
+    stateMutability: "view",
+    inputs: [{type: "address"}],
+    outputs: [{type: "address"}]
+  },
+  {
+    type: "function",
+    name: "basketsOf",
+    stateMutability: "view",
+    inputs: [{type: "address"}],
+    outputs: [{type: "address[]"}]
+  },
+  {
+    type: "function",
     name: "basketCount",
     stateMutability: "view",
     inputs: [],

@@ -2,6 +2,7 @@ import Link from "next/link";
 import {formatUnits} from "viem";
 import {erc20Abi, thesisBasketAbi, thesisFactoryAbi} from "@thesis/shared";
 import {deployment, explorer, publicClient} from "./chain";
+import BasketGallery from "./BasketGallery";
 import {AnimatedNumber, Reveal} from "./motion";
 
 export const revalidate = 15;
@@ -23,6 +24,13 @@ async function loadBaskets() {
         publicClient.readContract({address, abi: thesisBasketAbi, functionName: "totalSupply"})
       ]);
 
+      const creator = await publicClient.readContract({
+        address: deployment.factory,
+        abi: thesisFactoryAbi,
+        functionName: "creatorOf",
+        args: [address]
+      });
+
       const tickers = await Promise.all(
         constituents.map((token) =>
           publicClient
@@ -31,7 +39,7 @@ async function loadBaskets() {
         )
       );
 
-      return {address, name, symbol, theme, tickers, supply};
+      return {address, name, symbol, theme, tickers, creator, supply: formatUnits(supply, 18)};
     })
   );
 }
@@ -40,7 +48,7 @@ export default async function Home() {
   const baskets = await loadBaskets();
   const totalConstituents = baskets.reduce((n, b) => n + b.tickers.length, 0);
 
-  const totalShares = baskets.reduce((n, b) => n + Number(formatUnits(b.supply, 18)), 0);
+  const totalShares = baskets.reduce((n, b) => n + Number(b.supply), 0);
 
   return (
     <>
@@ -89,42 +97,7 @@ export default async function Home() {
           <span className="note">Anyone can launch one. The creator gets no special powers.</span>
         </div>
 
-        {baskets.length === 0 ? (
-          <div className="card">
-            <div className="card-theme">No baskets deployed yet.</div>
-          </div>
-        ) : (
-          baskets.map((basket, i) => (
-            <Reveal key={basket.address} delay={i * 80}>
-            <Link className="card" href={`/basket/${basket.address}`}>
-              <div className="card-head">
-                <div>
-                  <div className="card-title">{basket.name}</div>
-                  <div className="card-theme">&ldquo;{basket.theme}&rdquo;</div>
-                </div>
-                <span className="ticker">{basket.symbol}</span>
-              </div>
-
-              <div className="weights">
-                {basket.tickers.map((ticker) => (
-                  <span key={ticker} style={{flex: 1}} />
-                ))}
-              </div>
-
-              <div className="pills">
-                {basket.tickers.map((ticker) => (
-                  <span className="pill" key={ticker}>
-                    {ticker}
-                  </span>
-                ))}
-                <span className="pill">
-                  {formatUnits(basket.supply, 18).replace(/\.0+$/, "")} shares
-                </span>
-              </div>
-            </Link>
-            </Reveal>
-          ))
-        )}
+        <BasketGallery baskets={baskets} />
       </section>
 
       <section className="section">

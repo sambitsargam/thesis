@@ -11,6 +11,9 @@ export default function SiteNav() {
           Thesis
         </Link>
         <div className="nav-right">
+          <Link className="chip" href="/launch">
+            Launch a basket
+          </Link>
           <span className="chip live">X Layer · 196</span>
           <WalletButton />
         </div>

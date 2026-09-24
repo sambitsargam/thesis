@@ -57,6 +57,52 @@ function sign(creds: Credentials, method: string, requestPath: string): Record<s
  * `holder` is the contract that will hold the input tokens and receive the output —
  * for Thesis that is always the OkxTradeRouter adapter, never the end user.
  */
+/** Retries a 429 with backoff. The aggregator rate limits bursts of quotes. */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error: unknown) {
+      lastError = error;
+      const rateLimited = error instanceof Error && /429|50011|Too Many Requests/i.test(error.message);
+      if (!rateLimited || attempt === attempts - 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 400 * 2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Quotes several legs without tripping the aggregator's rate limit.
+ *
+ * Quotes are fetched one at a time with a short gap. Firing them in parallel
+ * returns 429 for baskets of more than about three constituents, which would
+ * make those baskets permanently unmintable.
+ */
+export async function fetchSwapQuotes(
+  legs: Array<{token: string; amount: bigint}>,
+  common: {chainId: number; fromToken: string; slippagePercent: string; holder: string}
+): Promise<SwapQuote[]> {
+  const quotes: SwapQuote[] = [];
+  for (const [index, leg] of legs.entries()) {
+    if (index > 0) await new Promise((resolve) => setTimeout(resolve, 220));
+    quotes.push(
+      await withRetry(() =>
+        fetchSwapQuote({
+          chainId: common.chainId,
+          fromToken: common.fromToken,
+          toToken: leg.token,
+          amount: leg.amount,
+          slippagePercent: common.slippagePercent,
+          holder: common.holder
+        })
+      )
+    );
+  }
+  return quotes;
+}
+
 export async function fetchSwapQuote(params: {
   chainId: number;
   fromToken: string;

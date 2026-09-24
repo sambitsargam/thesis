@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import {deploymentFor} from "@thesis/shared";
-import {fetchSwapQuote} from "@thesis/shared/okx";
+import {fetchSwapQuotes} from "@thesis/shared/okx";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,23 +22,26 @@ export async function POST(request: Request) {
 
     const deployment = deploymentFor(CHAIN_ID);
 
-    const quotes = await Promise.all(
-      legs.map(async (leg) => {
-        const quote = await fetchSwapQuote({
-          chainId: CHAIN_ID,
-          fromToken: deployment.quoteToken,
-          toToken: leg.token,
-          amount: BigInt(leg.amount),
-          slippagePercent: "1",
-          holder: deployment.router
-        });
-
-        if (quote.to.toLowerCase() !== deployment.okxDexRouter.toLowerCase()) {
-          throw new Error(`OKX returned calldata for an unexpected router: ${quote.to}`);
-        }
-        return {data: quote.data, expectedOut: quote.expectedOut.toString()};
-      })
+    const results = await fetchSwapQuotes(
+      legs.map((leg) => ({token: leg.token, amount: BigInt(leg.amount)})),
+      {
+        chainId: CHAIN_ID,
+        fromToken: deployment.quoteToken,
+        slippagePercent: "1",
+        holder: deployment.router
+      }
     );
+
+    for (const quote of results) {
+      if (quote.to.toLowerCase() !== deployment.okxDexRouter.toLowerCase()) {
+        throw new Error(`OKX returned calldata for an unexpected router: ${quote.to}`);
+      }
+    }
+
+    const quotes = results.map((quote) => ({
+      data: quote.data,
+      expectedOut: quote.expectedOut.toString()
+    }));
 
     return NextResponse.json({quotes});
   } catch (error: unknown) {
