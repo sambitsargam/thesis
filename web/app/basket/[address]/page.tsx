@@ -19,7 +19,7 @@ export default async function BasketPage({params}: {params: Promise<{address: st
     publicClient.readContract({address: basket, abi: thesisBasketAbi, functionName: "navPerShare"})
   ]);
 
-  const symbols = await Promise.all(
+  const tickers = await Promise.all(
     constituents.map((token) =>
       publicClient
         .readContract({address: token, abi: erc20Abi, functionName: "symbol"})
@@ -28,62 +28,130 @@ export default async function BasketPage({params}: {params: Promise<{address: st
   );
 
   const [, units] = nav;
-  const weight = Math.floor(10_000 / constituents.length);
+  const weight = 10_000 / constituents.length;
 
   return (
     <main>
-      <Link className="tag" href="/">
-        ← all baskets
-      </Link>
-      <h1 style={{marginTop: 14}}>
-        {name} · {symbol}
-      </h1>
-      <p className="lede">&ldquo;{theme}&rdquo;</p>
+      <header className="masthead">
+        <Link className="wordmark" href="/">
+          Thesis
+        </Link>
+        <span className="chip live">● Live on X Layer · 196</span>
+      </header>
 
-      <MintPanel
-        basket={basket}
-        symbol={symbol}
-        quoteToken={deployment.quoteToken}
-        constituents={constituents}
-        supplyIsZero={supply === 0n}
-        builderCode={process.env.BUILDER_CODE}
-      />
+      <section className="hero" style={{paddingBottom: 32}}>
+        <Link className="chip" href="/" style={{marginBottom: 22, display: "inline-block"}}>
+          ← All baskets
+        </Link>
+        <h1 style={{fontSize: "clamp(1.9rem, 5vw, 2.7rem)", maxWidth: "20ch"}}>{name}</h1>
+        <p>&ldquo;{theme}&rdquo;</p>
 
-      <h2>Holdings</h2>
-      <div className="card">
-        {constituents.map((token, i) => (
-          <div className="row" key={token}>
-            <span>
-              {symbols[i]} · {(weight / 100).toFixed(2)}%
-            </span>
-            <a className="mono" href={explorer(`address/${token}`)}>
-              {units[i] === undefined ? "—" : `${formatUnits(units[i], 18)} / share`}
+        <dl className="stats">
+          <div className="stat">
+            <dt>Symbol</dt>
+            <dd>{symbol}</dd>
+          </div>
+          <div className="stat">
+            <dt>Constituents</dt>
+            <dd>{constituents.length}</dd>
+          </div>
+          <div className="stat">
+            <dt>Each weighted</dt>
+            <dd>{(weight / 100).toFixed(2)}%</dd>
+          </div>
+          <div className="stat">
+            <dt>Shares out</dt>
+            <dd>{formatUnits(supply, 18).replace(/\.0+$/, "")}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="section" style={{marginTop: 32}}>
+        <MintPanel
+          basket={basket}
+          symbol={symbol}
+          quoteToken={deployment.quoteToken}
+          constituents={constituents}
+          supplyIsZero={supply === 0n}
+          builderCode={process.env.BUILDER_CODE}
+        />
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Holdings</h2>
+          <span className="note">
+            {supply === 0n ? "Nothing minted yet" : "Per one whole share"}
+          </span>
+        </div>
+        <div className="card">
+          {constituents.map((token, i) => (
+            <div className="holding" key={token}>
+              <div className="holding-top">
+                <span className="holding-name">{tickers[i]}</span>
+                <span className="holding-units">
+                  {units[i] === undefined || units[i] === 0n
+                    ? "—"
+                    : `${Number(formatUnits(units[i], 18)).toPrecision(6)} / share`}
+                </span>
+              </div>
+              <div className="holding-bar">
+                <i style={{width: `${weight / 100}%`}} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Mechanics</h2>
+        </div>
+        <div className="card">
+          <div className="row">
+            <span>Backing</span>
+            <span>Fully backed — the contract holds the real tokenized equities</span>
+          </div>
+          <div className="row">
+            <span>Redemption</span>
+            <span>Burn shares, receive the underlying pro rata, no price needed</span>
+          </div>
+          <div className="row">
+            <span>Rebalance</span>
+            <span>Agent-triggered; value cannot leave the basket</span>
+          </div>
+          <div className="row">
+            <span>Control</span>
+            <span>No owner, no pause, no upgrade. Constituents fixed at deployment</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Addresses</h2>
+        </div>
+        <div className="card">
+          <div className="row">
+            <span>Basket</span>
+            <a className="mono link" href={explorer(`address/${basket}`)}>
+              {basket}
             </a>
           </div>
-        ))}
-      </div>
+          {constituents.map((token, i) => (
+            <div className="row" key={token}>
+              <span>{tickers[i]}</span>
+              <a className="mono link" href={explorer(`address/${token}`)}>
+                {token}
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <h2>Basket</h2>
-      <div className="card">
-        <div className="row">
-          <span>Shares outstanding</span>
-          <span className="mono">{formatUnits(supply, 18)}</span>
-        </div>
-        <div className="row">
-          <span>Weighting</span>
-          <span className="mono">equal, {weight} bps each</span>
-        </div>
-        <div className="row">
-          <span>Backing</span>
-          <span className="mono">fully backed, redeemable in kind</span>
-        </div>
-        <div className="row">
-          <span>Contract</span>
-          <a className="mono" href={explorer(`address/${basket}`)}>
-            {basket}
-          </a>
-        </div>
-      </div>
+      <p className="foot">
+        Thesis · permissionless index launchpad for tokenized equities · OKX Dev Day 2026
+      </p>
     </main>
   );
 }
