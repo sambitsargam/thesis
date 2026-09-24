@@ -3,6 +3,7 @@ import {formatUnits} from "viem";
 import {erc20Abi, thesisBasketAbi, thesisFactoryAbi} from "@thesis/shared";
 import {deployment, explorer, publicClient} from "./chain";
 import BasketGallery from "./BasketGallery";
+import HeroDiagram from "./HeroDiagram";
 import {AnimatedNumber, Reveal} from "./motion";
 
 export const revalidate = 15;
@@ -63,6 +64,10 @@ export default async function Home() {
           manual rebalancing forever. Thesis deploys the whole basket as a single ERC-20 —
           fully backed, minted in one transaction, redeemable for the underlying at any time.
         </p>
+
+        <HeroDiagram
+          tickers={baskets[0]?.tickers ?? ["NVDAx", "TSLAx", "SPYx"]}
+        />
 
         <dl className="stats">
           <div className="stat">

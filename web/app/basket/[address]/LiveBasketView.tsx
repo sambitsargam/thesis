@@ -2,7 +2,9 @@
 
 import {useState} from "react";
 import type {LiveBasket} from "../../api/basket/route";
+import Allocation from "../../Allocation";
 import {AnimatedNumber, Bar, Flash, Reveal} from "../../motion";
+import {usd, usePrices} from "../../usePrices";
 import {useLiveBasket} from "../../useLiveBasket";
 import ActionPanel from "./ActionPanel";
 import YourPosition from "./YourPosition";
@@ -18,10 +20,21 @@ interface Props {
 
 export default function LiveBasketView(props: Props) {
   const {data, pulse, refresh} = useLiveBasket(props.basket, props.initial);
+  const {prices, ready: pricesReady} = usePrices();
   const [justMinted, setJustMinted] = useState(false);
 
   const supply = Number(data.supply);
   const weight = 100 / props.constituents.length;
+
+  // Value the basket at executable OKX prices; there is no oracle on chain.
+  const valued = data.holdings.map((holding) => ({
+    ...holding,
+    price: prices[holding.address.toLowerCase()] ?? 0,
+    value: (prices[holding.address.toLowerCase()] ?? 0) * Number(holding.held)
+  }));
+  const totalValue = valued.reduce((sum, h) => sum + h.value, 0);
+  const navPerShare = supply > 0 ? totalValue / supply : 0;
+  const showUsd = pricesReady && totalValue > 0;
 
   return (
     <>
@@ -43,12 +56,20 @@ export default function LiveBasketView(props: Props) {
           </dd>
         </div>
         <div className="stat">
-          <dt>Shares outstanding</dt>
+          <dt>Shares out</dt>
           <dd>
             <Flash watch={data.supply}>
               <AnimatedNumber value={supply} decimals={supply === 0 ? 0 : 3} />
             </Flash>
           </dd>
+        </div>
+        <div className="stat">
+          <dt>NAV per share</dt>
+          <dd>{showUsd ? <AnimatedNumber value={navPerShare} decimals={4} prefix="$" /> : "—"}</dd>
+        </div>
+        <div className="stat">
+          <dt>Basket value</dt>
+          <dd>{showUsd ? <AnimatedNumber value={totalValue} decimals={2} prefix="$" /> : "—"}</dd>
         </div>
       </dl>
 
@@ -92,12 +113,27 @@ export default function LiveBasketView(props: Props) {
           </span>
         </div>
 
+        {showUsd && (
+          <Reveal>
+            <div className="card" style={{marginBottom: 12}}>
+              <Allocation
+                slices={valued.map((h) => ({ticker: h.ticker, value: h.value, target: weight}))}
+              />
+            </div>
+          </Reveal>
+        )}
+
         <div className="card">
-          {data.holdings.map((holding, i) => (
+          {valued.map((holding, i) => (
             <Reveal key={holding.address} delay={i * 70}>
               <div className="holding">
                 <div className="holding-top">
-                  <span className="holding-name">{holding.ticker}</span>
+                  <span className="holding-name">
+                    {holding.ticker}
+                    {holding.price > 0 && (
+                      <span className="holding-price">{usd(holding.price)}</span>
+                    )}
+                  </span>
                   <span className="holding-units">
                     <Flash watch={holding.perShare}>
                       {Number(holding.perShare) === 0
@@ -114,6 +150,7 @@ export default function LiveBasketView(props: Props) {
                   <span className="holding-units" style={{opacity: 0.7}}>
                     basket holds{" "}
                     <Flash watch={holding.held}>{Number(holding.held).toFixed(9)}</Flash>
+                    {holding.value > 0 && ` · ${usd(holding.value)}`}
                   </span>
                 </div>
               </div>

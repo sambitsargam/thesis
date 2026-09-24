@@ -120,7 +120,7 @@ main { max-width: 880px; margin: 0 auto; padding: 0 20px 120px; }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 1px;
   background: var(--line-soft);
   border: 1px solid var(--line);
@@ -129,9 +129,9 @@ main { max-width: 880px; margin: 0 auto; padding: 0 20px 120px; }
   margin-top: 44px;
 }
 
-.stat { background: var(--surface); padding: 18px 20px; }
-.stat dt { color: var(--muted); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 6px; }
-.stat dd { margin: 0; font-size: 1.22rem; font-weight: 620; letter-spacing: -0.02em; }
+.stat { background: var(--surface); padding: 17px 18px; }
+.stat dt { color: var(--muted); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 6px; white-space: nowrap; }
+.stat dd { margin: 0; font-size: 1.12rem; font-weight: 620; letter-spacing: -0.025em; white-space: nowrap; }
 
 /* ----------------------------------------------------------------- section */
 
@@ -707,4 +707,75 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   border-radius: 999px;
   padding: 2px 8px;
   vertical-align: 2px;
+}
+
+/* ================================================================ allocation */
+
+.alloc { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; }
+.alloc svg { color: var(--ink); flex: 0 0 auto; }
+.alloc-total { font-size: 1.28rem; font-weight: 680; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.alloc-sub { font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.5; }
+
+.alloc-legend { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 210px; display: grid; gap: 9px; }
+.alloc-legend li {
+  display: grid;
+  grid-template-columns: 11px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+.swatch { width: 11px; height: 11px; border-radius: 3px; }
+.alloc-ticker { font-weight: 560; }
+.alloc-pct { color: var(--ink-dim); }
+.alloc-drift { font-size: 0.78rem; min-width: 52px; text-align: right; }
+.alloc-drift.over { color: var(--warn); }
+.alloc-drift.under { color: var(--accent); }
+.alloc-drift.flat { color: var(--muted); }
+
+@media (max-width: 480px) { .alloc { gap: 18px; justify-content: center; } }
+
+.holding-price {
+  margin-left: 9px;
+  font-size: 0.78rem;
+  font-weight: 460;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.position-value.accent { color: var(--accent); }
+.claim-usd { color: var(--muted); font-size: 0.8rem; margin-left: 10px; }
+
+/* =============================================================== hero diagram */
+
+.hero-diagram { width: 100%; max-width: 420px; height: auto; margin-top: 30px; display: block; }
+
+.dg-box, .dg-chip { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.dg-label { fill: var(--ink); font-size: 11px; font-weight: 600; }
+.dg-sub { fill: var(--muted); font-size: 9px; }
+.dg-ticker { fill: var(--ink-dim); font-size: 10.5px; font-weight: 560; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.dg-wire {
+  fill: none;
+  stroke: url(#flow);
+  stroke-width: 1.6;
+  stroke-dasharray: 170;
+  stroke-dashoffset: 170;
+  animation: draw 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.dg-wire.in { stroke: var(--accent); stroke-opacity: 0.5; }
+
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+.dg-basket { fill: color-mix(in srgb, var(--accent) 12%, transparent); }
+.dg-basket-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  stroke-dasharray: 189;
+  stroke-dashoffset: 189;
+  animation: draw 1.4s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-wire, .dg-basket-ring { animation: none; stroke-dashoffset: 0; }
 }

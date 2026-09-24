@@ -2,10 +2,12 @@
 
 import {useCallback, useEffect, useState} from "react";
 import {Flash, Reveal} from "../../motion";
+import {usd, usePrices} from "../../usePrices";
 import {useWallet} from "../../WalletProvider";
 
 interface Holding {
   ticker: string;
+  address: string;
   perShare: string;
 }
 
@@ -30,6 +32,7 @@ export default function YourPosition({
   refreshKey: string;
 }) {
   const {account} = useWallet();
+  const {prices, ready: pricesReady} = usePrices();
   const [shares, setShares] = useState<string | null>(null);
 
   const read = useCallback(async () => {
@@ -64,6 +67,14 @@ export default function YourPosition({
   const total = Number(supply);
   const share = total > 0 ? (owned / total) * 100 : 0;
 
+  const claims = holdings.map((holding) => {
+    const amount = Number(holding.perShare) * owned;
+    const price = prices[holding.address.toLowerCase()] ?? 0;
+    return {ticker: holding.ticker, amount, value: amount * price};
+  });
+  const positionValue = claims.reduce((sum, claim) => sum + claim.value, 0);
+  const showUsd = pricesReady && positionValue > 0;
+
   return (
     <section className="section">
       <div className="section-head">
@@ -94,19 +105,28 @@ export default function YourPosition({
                   </div>
                   <div className="position-label">{symbol} held</div>
                 </div>
-                <div style={{textAlign: "right"}}>
+                <div>
                   <div className="position-value tnum">{share.toFixed(2)}%</div>
                   <div className="position-label">of all shares</div>
+                </div>
+                <div style={{textAlign: "right"}}>
+                  <div className="position-value tnum accent">
+                    {showUsd ? usd(positionValue) : "—"}
+                  </div>
+                  <div className="position-label">market value</div>
                 </div>
               </div>
 
               <div className="position-claim">
                 <div className="preview-title">Your claim on the underlying</div>
-                {holdings.map((holding) => (
-                  <div className="row" key={holding.ticker}>
-                    <span>{holding.ticker}</span>
+                {claims.map((claim) => (
+                  <div className="row" key={claim.ticker}>
+                    <span>{claim.ticker}</span>
                     <span className="tnum">
-                      {(Number(holding.perShare) * owned).toFixed(9)}
+                      {claim.amount.toFixed(9)}
+                      {claim.value > 0 && (
+                        <span className="claim-usd">{usd(claim.value)}</span>
+                      )}
                     </span>
                   </div>
                 ))}
