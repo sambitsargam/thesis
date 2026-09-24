@@ -1,7 +1,7 @@
 import {createPublicClient, createWalletClient, encodeFunctionData, formatUnits, http} from "viem";
 import {privateKeyToAccount} from "viem/accounts";
 import {appendBuilderCode, deploymentFor, erc20Abi, thesisBasketAbi, xLayer} from "@thesis/shared";
-import {fetchSwapQuote} from "./okx.js";
+import {fetchSwapQuote} from "@thesis/shared/okx";
 
 const CHAIN_ID = 196;
 const QUOTE_DECIMALS = 6;
