@@ -224,7 +224,7 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
                   ? `${results.length} shown`
                   : query
                     ? `${results.length} match${results.length === 1 ? "" : "es"} for “${query}”`
-                    : `Showing ${results.length} of ${total} — scroll, or search to narrow`}
+                    : `All ${results.length} tokenized equities — scroll, or search to narrow`}
             </span>
             {!query && total !== null && results.length < total && (
               <span>Type a ticker or company name</span>

@@ -21,10 +21,15 @@ export const XSTOCK_CATALOG: TokenizedEquity[] = (xstocks as Array<{
   wrapped: token.ticker.startsWith("w")
 }));
 
-/** Ranks exact ticker matches first, then prefixes, then anything containing the term. */
-export function searchEquities(term: string, limit = 40): TokenizedEquity[] {
+/**
+ * Ranks exact ticker matches first, then prefixes, then anything containing the term.
+ *
+ * With no term the whole catalogue is returned. Truncating it silently made the list
+ * appear to end mid-alphabet, which reads as a broken scroll rather than a page limit.
+ */
+export function searchEquities(term: string, limit = 250): TokenizedEquity[] {
   const q = term.trim().toLowerCase();
-  if (!q) return XSTOCK_CATALOG.slice(0, limit);
+  if (!q) return XSTOCK_CATALOG;
 
   const scored = XSTOCK_CATALOG.map((token) => {
     const ticker = token.ticker.toLowerCase();

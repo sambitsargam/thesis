@@ -13,6 +13,6 @@ export async function GET(request: Request) {
   const q = new URL(request.url).searchParams.get("q") ?? "";
   return NextResponse.json({
     total: XSTOCK_CATALOG.length,
-    tokens: searchEquities(q, 120)
+    tokens: searchEquities(q)
   });
 }
