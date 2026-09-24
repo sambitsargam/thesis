@@ -43,6 +43,29 @@ Live on **X Layer mainnet (chain 196)**, deployed 24 September 2026 in block 714
 | `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
 | `THESIS-TECH` basket | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
 
+### Proven on mainnet
+
+The full path has executed end to end on chain 196 — OKX aggregator quote →
+`OkxTradeRouter` → OKX `DexRouter` → measured fills → shares minted.
+
+| | |
+| --- | --- |
+| Mint transaction | [`0xc9521156…e43f38f9`](https://www.oklink.com/xlayer/tx/0xc9521156d21981f52f94d005ccd5ffe805b3e39008df34ab04e3c24ae43f38f9) |
+| Block | 71494224 |
+| Paid in | 3.000000 USD₮0 |
+| Received | 3.000000 THESIS-TECH |
+
+The basket now holds real equities, redeemable in kind at any time:
+
+| Constituent | Basket holds | Per whole share |
+| --- | --- | --- |
+| NVDAx | 0.004509688 | 0.001503229 |
+| TSLAx | 0.002652390 | 0.000884130 |
+| SPYx | 0.001307238 | 0.000435746 |
+
+Shares were minted at exactly `minSharesOut`, so nothing was lost to slippage on
+the way in.
+
 ### The demo basket
 
 **Thesis US Megacaps** (`THESIS-TECH`) — *"US megacap equities, equal weight"*, three
