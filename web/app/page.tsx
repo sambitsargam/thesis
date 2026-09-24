@@ -2,6 +2,7 @@ import Link from "next/link";
 import {formatUnits} from "viem";
 import {erc20Abi, thesisBasketAbi, thesisFactoryAbi} from "@thesis/shared";
 import {deployment, explorer, publicClient} from "./chain";
+import {AnimatedNumber, Reveal} from "./motion";
 
 export const revalidate = 15;
 
@@ -39,14 +40,19 @@ export default async function Home() {
   const baskets = await loadBaskets();
   const totalConstituents = baskets.reduce((n, b) => n + b.tickers.length, 0);
 
+  const totalShares = baskets.reduce((n, b) => n + Number(formatUnits(b.supply, 18)), 0);
+
   return (
-    <main>
+    <>
+      <div className="aurora" aria-hidden="true" />
+      <main>
       <header className="masthead">
         <span className="wordmark">Thesis</span>
-        <span className="chip live">● Live on X Layer · 196</span>
+        <span className="chip live">Live on X Layer · 196</span>
       </header>
 
       <section className="hero">
+        <Reveal>
         <h1>
           Turn a theme into <em>one holdable asset</em>.
         </h1>
@@ -59,21 +65,28 @@ export default async function Home() {
         <dl className="stats">
           <div className="stat">
             <dt>Baskets live</dt>
-            <dd>{baskets.length}</dd>
+            <dd>
+              <AnimatedNumber value={baskets.length} />
+            </dd>
           </div>
           <div className="stat">
             <dt>Equities held</dt>
-            <dd>{totalConstituents}</dd>
+            <dd>
+              <AnimatedNumber value={totalConstituents} />
+            </dd>
           </div>
           <div className="stat">
-            <dt>Weighting</dt>
-            <dd>Equal</dd>
+            <dt>Shares minted</dt>
+            <dd>
+              <AnimatedNumber value={totalShares} decimals={totalShares === 0 ? 0 : 3} />
+            </dd>
           </div>
           <div className="stat">
             <dt>Backing</dt>
             <dd>1:1 real</dd>
           </div>
         </dl>
+        </Reveal>
       </section>
 
       <section className="section">
@@ -87,8 +100,9 @@ export default async function Home() {
             <div className="card-theme">No baskets deployed yet.</div>
           </div>
         ) : (
-          baskets.map((basket) => (
-            <Link key={basket.address} className="card" href={`/basket/${basket.address}`}>
+          baskets.map((basket, i) => (
+            <Reveal key={basket.address} delay={i * 80}>
+            <Link className="card" href={`/basket/${basket.address}`}>
               <div className="card-head">
                 <div>
                   <div className="card-title">{basket.name}</div>
@@ -114,6 +128,7 @@ export default async function Home() {
                 </span>
               </div>
             </Link>
+            </Reveal>
           ))
         )}
       </section>
@@ -122,6 +137,7 @@ export default async function Home() {
         <div className="section-head">
           <h2>How a mint works</h2>
         </div>
+        <Reveal>
         <div className="card">
           <div className="row">
             <span>1 · Quote</span>
@@ -140,6 +156,7 @@ export default async function Home() {
             <span>You receive one ERC-20 backed by the equities the basket now owns</span>
           </div>
         </div>
+        </Reveal>
       </section>
 
       <section className="section">
@@ -178,6 +195,7 @@ export default async function Home() {
       <p className="foot">
         Thesis · permissionless index launchpad for tokenized equities · OKX Dev Day 2026
       </p>
-    </main>
+      </main>
+    </>
   );
 }

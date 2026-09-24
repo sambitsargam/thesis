@@ -14,6 +14,7 @@ interface Props {
   constituents: readonly `0x${string}`[];
   supplyIsZero: boolean;
   builderCode?: string;
+  onMinted?: () => void;
 }
 
 type Phase = "idle" | "quoting" | "approving" | "minting" | "done";
@@ -114,6 +115,7 @@ export default function MintPanel(props: Props) {
       const hash = await client.sendTransaction({account, to: props.basket, data});
       setTxHash(hash);
       setPhase("done");
+      props.onMinted?.();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message.split("\n")[0]! : "Mint failed.");
       setPhase("idle");
@@ -121,13 +123,24 @@ export default function MintPanel(props: Props) {
   }
 
   const busy = phase === "quoting" || phase === "approving" || phase === "minting";
-  const label: Record<Phase, string> = {
-    idle: `Mint with ${amount || "0"} USD₮0`,
-    quoting: "Pricing each leg…",
-    approving: "Approve in your wallet…",
-    minting: "Confirm the mint…",
-    done: `Mint more ${props.symbol}`
+
+  const STEPS = [
+    {key: "quoting", label: "Pricing each leg through Onchain OS Trade"},
+    {key: "approving", label: "Approving USD₮0"},
+    {key: "minting", label: "Buying constituents and minting shares"}
+  ] as const;
+
+  const order: Phase[] = ["idle", "quoting", "approving", "minting", "done"];
+  const stateOf = (key: Phase) => {
+    if (phase === "done") return "done";
+    const now = order.indexOf(phase);
+    const mine = order.indexOf(key);
+    if (now === mine) return "active";
+    return now > mine ? "done" : "todo";
   };
+
+  const buttonLabel =
+    phase === "done" ? `Mint more ${props.symbol}` : busy ? "Working…" : `Mint ${amount || "0"} USD₮0`;
 
   return (
     <div className="card">
@@ -179,19 +192,38 @@ export default function MintPanel(props: Props) {
               aria-label="Amount in USD₮0"
             />
             <button onClick={mint} disabled={busy}>
-              {label[phase]}
+              {buttonLabel}
             </button>
           </div>
         </>
       )}
 
+      {(busy || phase === "done") && (
+        <div className="steps">
+          {STEPS.map((step) => (
+            <div className="step" key={step.key} data-state={stateOf(step.key)}>
+              <span className="dot">{stateOf(step.key) === "done" ? "✓" : ""}</span>
+              {step.label}
+            </div>
+          ))}
+        </div>
+      )}
+
       {txHash && (
-        <p className="status done">
-          Minted ·{" "}
-          <a className="mono link" href={`https://www.oklink.com/xlayer/tx/${txHash}`}>
-            {txHash.slice(0, 18)}…
+        <div className="receipt">
+          <div className="headline">Minted {props.symbol}</div>
+          <p className="status" style={{marginTop: 6}}>
+            Your shares are backed by the equities the basket just bought.
+          </p>
+          <a
+            className="mono link"
+            href={`https://www.oklink.com/xlayer/tx/${txHash}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {txHash}
           </a>
-        </p>
+        </div>
       )}
       {error && <p className="status error">{error}</p>}
     </div>
