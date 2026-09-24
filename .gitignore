@@ -31,3 +31,4 @@ pnpm-debug.log*
 # os
 .DS_Store
 contracts/deployments/31337.json
+.vercel

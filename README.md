@@ -4,6 +4,8 @@
 Describe an investment theme in plain language and a tradeable basket of tokenized
 equities is deployed on X Layer in one transaction.
 
+**Live app: [thesis-xlayer.vercel.app](https://thesis-xlayer.vercel.app)**
+
 Built for OKX Dev Day 2026 — Build a Market track.
 
 ---
@@ -136,13 +138,16 @@ the txn hash on OKLink.
 
 ## Live app
 
-Deployed on Vercel from this repository. The web app is a read-and-sign client: it
+**[thesis-xlayer.vercel.app](https://thesis-xlayer.vercel.app)** — deployed on Vercel
+from this repository, served from Singapore (`sin1`). The web app is a read-and-sign client: it
 holds **no private key**, and signing always happens in the visitor's wallet.
 
 ### Deploying
 
 Vercel builds the whole workspace from the repository root, so `@thesis/shared` is
-resolved the same way it is locally.
+resolved the same way it is locally. Security and cache headers live in
+`web/next.config.mjs`, because Vercel ignores `headers` from `vercel.json` on
+Next.js projects.
 
 ```bash
 vercel link          # once, to attach the project
