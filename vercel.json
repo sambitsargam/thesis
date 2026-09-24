@@ -3,8 +3,9 @@
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @thesis/web build",
-  "outputDirectory": "web/.next",
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "github": {
     "silent": true
   },
@@ -12,10 +13,22 @@
     {
       "source": "/(.*)",
       "headers": [
-        {"key": "X-Content-Type-Options", "value": "nosniff"},
-        {"key": "X-Frame-Options", "value": "DENY"},
-        {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"},
-        {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"},
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains; preload"
@@ -24,11 +37,21 @@
     },
     {
       "source": "/api/(.*)",
-      "headers": [{"key": "Cache-Control", "value": "no-store, must-revalidate"}]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/icon.svg",
-      "headers": [{"key": "Cache-Control", "value": "public, max-age=86400, immutable"}]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, immutable"
+        }
+      ]
     }
   ]
 }
