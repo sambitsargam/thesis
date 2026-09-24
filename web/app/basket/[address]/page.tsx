@@ -54,15 +54,7 @@ export default async function BasketPage({params}: {params: Promise<{address: st
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
       <main>
-        <header className="masthead">
-          <Link className="wordmark" href="/">
-            Thesis
-          </Link>
-          <span className="chip live">Live on X Layer · 196</span>
-        </header>
-
         <section className="hero" style={{paddingBottom: 30}}>
           <Reveal>
             <Link className="chip" href="/" style={{marginBottom: 22, display: "inline-block"}}>

@@ -44,13 +44,7 @@ export default async function Home() {
 
   return (
     <>
-      <div className="aurora" aria-hidden="true" />
       <main>
-      <header className="masthead">
-        <span className="wordmark">Thesis</span>
-        <span className="chip live">Live on X Layer · 196</span>
-      </header>
-
       <section className="hero">
         <Reveal>
         <h1>

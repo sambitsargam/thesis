@@ -72,7 +72,14 @@ export function AnimatedNumber({
   );
 }
 
-/** Fades and lifts children into place, staggered by index. */
+/**
+ * Fades and lifts children into place, staggered by index.
+ *
+ * Content must never stay hidden: if IntersectionObserver is missing, or an
+ * observer never fires (above-the-fold elements on some mobile browsers report
+ * no intersection), a timer reveals the content anyway. A missed animation is a
+ * cosmetic loss; an invisible page is not.
+ */
 export function Reveal({
   children,
   delay = 0,
@@ -87,7 +94,13 @@ export function Reveal({
 
   useEffect(() => {
     const node = ref.current;
-    if (!node) return;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setShown(true);
+      return;
+    }
+
+    // Belt and braces: reveal regardless once this fires.
+    const failsafe = setTimeout(() => setShown(true), 700 + delay);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -100,8 +113,11 @@ export function Reveal({
     );
 
     observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      clearTimeout(failsafe);
+      observer.disconnect();
+    };
+  }, [delay]);
 
   return (
     <div

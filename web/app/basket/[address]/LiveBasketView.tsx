@@ -4,7 +4,7 @@ import {useState} from "react";
 import type {LiveBasket} from "../../api/basket/route";
 import {AnimatedNumber, Bar, Flash, Reveal} from "../../motion";
 import {useLiveBasket} from "../../useLiveBasket";
-import MintPanel from "./MintPanel";
+import ActionPanel from "./ActionPanel";
 
 interface Props {
   basket: `0x${string}`;
@@ -53,17 +53,18 @@ export default function LiveBasketView(props: Props) {
       </dl>
 
       <section className="section" style={{marginTop: 32}}>
-        <MintPanel
+        <ActionPanel
           basket={props.basket}
           symbol={props.symbol}
           quoteToken={props.quoteToken}
           constituents={props.constituents}
+          holdings={data.holdings}
           supplyIsZero={supply === 0}
           builderCode={props.builderCode}
-          onMinted={() => {
+          onChanged={() => {
             setJustMinted(true);
             void refresh();
-            // The receipt lands before the node has the receipt indexed; poll again.
+            // The receipt lands before the node has indexed it; poll again.
             setTimeout(() => void refresh(), 2500);
             setTimeout(() => void refresh(), 6000);
           }}
@@ -114,7 +115,7 @@ export default function LiveBasketView(props: Props) {
         </div>
 
         {justMinted && (
-          <p className="status done">Holdings updated live — no reload needed.</p>
+          <p className="status done">Updated live — no reload needed.</p>
         )}
       </section>
     </>
