@@ -48,7 +48,8 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
         </div>
       )}
 
-      {shown.map((basket, i) => (
+      <div className="gallery">
+        {shown.map((basket, i) => (
         <Reveal key={basket.address} delay={i * 70}>
           <Link className="card" href={`/basket/${basket.address}`}>
             <div className="card-head">
@@ -77,8 +78,9 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
               <span className="pill">{basket.supply.replace(/\.0+$/, "")} shares</span>
             </div>
           </Link>
-        </Reveal>
-      ))}
+          </Reveal>
+        ))}
+      </div>
 
       {shown.length === 0 && (
         <div className="card">

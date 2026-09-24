@@ -73,7 +73,8 @@ export default function LiveBasketView(props: Props) {
         </div>
       </dl>
 
-      <section className="section" style={{marginTop: 32}}>
+      <div className="trade-row" style={{marginTop: 32}}>
+      <section className="section" style={{marginTop: 0}}>
         <ActionPanel
           basket={props.basket}
           symbol={props.symbol}
@@ -98,6 +99,7 @@ export default function LiveBasketView(props: Props) {
         holdings={data.holdings}
         refreshKey={data.blockNumber}
       />
+      </div>
 
       <section className="section">
         <div className="section-head">
