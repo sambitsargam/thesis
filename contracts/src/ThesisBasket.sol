@@ -58,6 +58,7 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
         address tokenOut;
         uint256 amountIn;
         uint256 minAmountOut;
+        bytes swapData;
     }
 
     /// @notice Emitted when shares are created against a quote-token deposit.
@@ -83,6 +84,7 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
     error SameToken(address token);
     error MissingSlippageBound(uint256 index);
     error QuoteResidue(uint256 amount);
+    error SwapDataLengthMismatch(uint256 provided, uint256 expected);
 
     /// @notice Deploy a basket over a fixed, equal-weight set of constituents.
     /// @param name_ ERC-20 name of the share token.
@@ -130,49 +132,84 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
     ///      constituent dilutes the minter rather than existing holders.
     /// @param quoteAmount Amount of `quoteToken` to spend.
     /// @param minSharesOut Revert if fewer shares than this would be minted.
+    /// @param swapData One venue calldata blob per constituent, in `constituents()` order,
+    ///        fetched off-chain by the caller. Each must sell exactly this leg's share of
+    ///        `quoteAmount` into this contract; the router verifies the result by balance.
     /// @return shares Shares minted to the caller.
-    function mint(uint256 quoteAmount, uint256 minSharesOut) external nonReentrant returns (uint256 shares) {
+    function mint(uint256 quoteAmount, uint256 minSharesOut, bytes[] calldata swapData)
+        external
+        nonReentrant
+        returns (uint256 shares)
+    {
         if (quoteAmount == 0) revert ZeroAmount();
-
         uint256 n = _constituents.length;
+        if (swapData.length != n) revert SwapDataLengthMismatch(swapData.length, n);
+
         uint256 supply = totalSupply();
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteAmount);
         quoteToken.forceApprove(address(router), quoteAmount);
 
-        uint256[] memory held = new uint256[](n);
-        uint256[] memory received = new uint256[](n);
-        uint256 perLeg = quoteAmount / n;
-        uint256 spent;
-
-        for (uint256 i; i < n; ++i) {
-            IERC20 token = IERC20(_constituents[i]);
-            // The last leg absorbs the division dust so the whole deposit is deployed.
-            uint256 amountIn = i + 1 == n ? quoteAmount - spent : perLeg;
-            spent += amountIn;
-            held[i] = token.balanceOf(address(this));
-            router.swapExactIn(address(quoteToken), address(token), amountIn, 0, address(this));
-            received[i] = token.balanceOf(address(this)) - held[i];
-            if (received[i] == 0) revert ZeroShares();
-        }
+        (uint256[] memory held, uint256[] memory received) = _buyConstituents(quoteAmount, swapData);
 
         quoteToken.forceApprove(address(router), 0);
 
-        if (supply == 0) {
-            shares = Math.mulDiv(quoteAmount, ONE_SHARE, _quoteScale);
-        } else {
-            shares = type(uint256).max;
-            for (uint256 i; i < n; ++i) {
-                if (held[i] == 0) revert EmptyBasket();
-                uint256 legShares = Math.mulDiv(supply, received[i], held[i]);
-                if (legShares < shares) shares = legShares;
-            }
-        }
-
+        shares = _sharesFor(supply, quoteAmount, held, received);
         if (shares == 0) revert ZeroShares();
         if (shares < minSharesOut) revert SlippageExceeded(shares, minSharesOut);
 
         _mint(msg.sender, shares);
         emit Minted(msg.sender, quoteAmount, shares);
+    }
+
+    /// @dev Spends the deposit in equal parts, sending the division dust to the last leg
+    ///      so the whole amount is deployed. Returns balances before each swap and the
+    ///      amount each one actually delivered.
+    function _buyConstituents(uint256 quoteAmount, bytes[] calldata swapData)
+        private
+        returns (uint256[] memory held, uint256[] memory received)
+    {
+        uint256 n = _constituents.length;
+        held = new uint256[](n);
+        received = new uint256[](n);
+
+        uint256 perLeg = quoteAmount / n;
+        uint256 spent;
+
+        for (uint256 i; i < n; ++i) {
+            uint256 amountIn = i + 1 == n ? quoteAmount - spent : perLeg;
+            spent += amountIn;
+
+            (held[i], received[i]) = _buyLeg(_constituents[i], amountIn, swapData[i]);
+            if (received[i] == 0) revert ZeroShares();
+        }
+    }
+
+    /// @dev One leg of a mint, kept in its own frame so the six-argument router call
+    ///      does not overflow the stack. Measures the fill rather than trusting it.
+    function _buyLeg(address token, uint256 amountIn, bytes calldata swapData)
+        private
+        returns (uint256 heldBefore, uint256 received)
+    {
+        heldBefore = IERC20(token).balanceOf(address(this));
+        router.swapExactIn(address(quoteToken), token, amountIn, 0, address(this), swapData);
+        received = IERC20(token).balanceOf(address(this)) - heldBefore;
+    }
+
+    /// @dev Prices the first mint at one share per whole quote token, and every later
+    ///      mint off the scarcest leg, so a bad fill dilutes the minter and not the basket.
+    function _sharesFor(uint256 supply, uint256 quoteAmount, uint256[] memory held, uint256[] memory received)
+        private
+        view
+        returns (uint256 shares)
+    {
+        if (supply == 0) return Math.mulDiv(quoteAmount, ONE_SHARE, _quoteScale);
+
+        shares = type(uint256).max;
+        for (uint256 i; i < held.length; ++i) {
+            if (held[i] == 0) revert EmptyBasket();
+            uint256 legShares = Math.mulDiv(supply, received[i], held[i]);
+            if (legShares < shares) shares = legShares;
+        }
     }
 
     /// @notice Burn shares and take the underlying constituents out in kind, pro rata.
@@ -227,7 +264,9 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
 
             uint256 held = IERC20(leg.tokenOut).balanceOf(address(this));
             IERC20(leg.tokenIn).forceApprove(address(router), leg.amountIn);
-            router.swapExactIn(leg.tokenIn, leg.tokenOut, leg.amountIn, leg.minAmountOut, address(this));
+            router.swapExactIn(
+                leg.tokenIn, leg.tokenOut, leg.amountIn, leg.minAmountOut, address(this), leg.swapData
+            );
             IERC20(leg.tokenIn).forceApprove(address(router), 0);
 
             amountsOut[i] = IERC20(leg.tokenOut).balanceOf(address(this)) - held;

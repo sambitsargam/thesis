@@ -35,17 +35,60 @@ There is no way to express a thematic view as a single holdable asset.
 
 ## Deployed contracts
 
-Addresses are added as each deployment lands.
+Live on **X Layer mainnet (chain 196)**, deployed 24 September 2026 in block 71491743.
 
-| Contract        | Network              | Address | Explorer |
-| --------------- | -------------------- | ------- | -------- |
-| `ThesisFactory` | X Layer (196)        | _TBD_   | _TBD_    |
-| `ThesisFactory` | X Layer Testnet (195)| _TBD_   | _TBD_    |
+| Contract | Address | Explorer |
+| --- | --- | --- |
+| `ThesisFactory` | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
+| `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
+| `THESIS-TECH` basket | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
+
+### The demo basket
+
+**Thesis US Megacaps** (`THESIS-TECH`) — *"US megacap equities, equal weight"*, three
+constituents at a 3,333 bps target weight each.
+
+| Constituent | Address |
+| --- | --- |
+| NVDAx | [`0xc845b2894dBddd03858fd2D643B4eF725fE0849d`](https://www.oklink.com/xlayer/address/0xc845b2894dBddd03858fd2D643B4eF725fE0849d) |
+| TSLAx | [`0x8aD3c73F833d3F9A523aB01476625F269aEB7Cf0`](https://www.oklink.com/xlayer/address/0x8aD3c73F833d3F9A523aB01476625F269aEB7Cf0) |
+| SPYx | [`0x90A2a4c76b5D8c0bc892A69EA28Aa775a8f2dD48`](https://www.oklink.com/xlayer/address/0x90A2a4c76b5D8c0bc892A69EA28Aa775a8f2dD48) |
+
+Baskets are minted with [USD₮0](https://www.oklink.com/xlayer/address/0x779Ded0c9e1022225f8E0630b35a9b54bE713736)
+(`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`, 6 decimals).
 
 ## OKX integration
 
-Completed as the build lands — X Layer, xStocks, Onchain OS Trade, the OKX AI ASP
-listing and the ERC-8021 Builder Code.
+| Piece | How Thesis uses it |
+| --- | --- |
+| **X Layer** | Every contract is deployed to mainnet chain 196. Gas is OKB. |
+| **xStocks** | Baskets hold real tokenized equities. Fully backed — no synthetic exposure. |
+| **Onchain OS Trade** | `OkxTradeRouter` routes every mint swap through the OKX aggregator. |
+
+### How the Trade integration works
+
+Onchain OS Trade is quoted **off-chain**: the aggregator API returns ready-made
+transaction calldata, which no contract can fetch mid-transaction. So `mint` takes one
+calldata blob per constituent, obtained by the caller, and `OkxTradeRouter` forwards each
+to the OKX `DexRouter` after approving `DexTokenApprove` — the two-contract pattern OKX
+requires, where approving the router directly silently fails.
+
+The adapter treats that calldata as **untrusted**. It measures its own balance before and
+after each call and enforces `minAmountOut` against the difference, never against anything
+the blob claims. Calldata that diverts the output elsewhere yields a measured fill of zero
+and reverts the whole transaction. Unspent input is refunded in the same call, so the
+adapter never holds a balance between swaps.
+
+| OKX contract | Address on X Layer |
+| --- | --- |
+| `DexRouter` | `0x7c5bEE2a8091C3ef39072f64F18Fac913060AEaF` |
+| `DexTokenApprove` | `0x8b773D83bc66Be128c60e07E17C8901f7a64F000` |
+
+### Builder Code
+
+Every state-changing call accepts an ERC-8021 builder code appended to its calldata.
+`ThesisBasket` ignores the trailing bytes by design, proven by
+`test_MintAcceptsTrailingBuilderCodeCalldata`.
 
 ## Development
 

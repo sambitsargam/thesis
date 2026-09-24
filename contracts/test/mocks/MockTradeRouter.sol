@@ -31,7 +31,8 @@ contract MockTradeRouter is ITradeRouter {
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
-        address recipient
+        address recipient,
+        bytes calldata
     ) external returns (uint256 amountOut) {
         uint256 den = rateDen[tokenIn][tokenOut];
         if (den == 0) revert NoRate(tokenIn, tokenOut);

@@ -10,7 +10,8 @@ node_modules/
 # foundry
 contracts/out/
 contracts/cache/
-contracts/broadcast/*/dry-run/
+contracts/broadcast/**/dry-run/
+contracts/broadcast/**/run-[0-9]*.json
 
 # next.js
 web/.next/
@@ -28,3 +29,4 @@ pnpm-debug.log*
 
 # os
 .DS_Store
+contracts/deployments/31337.json

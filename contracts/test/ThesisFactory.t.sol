@@ -130,7 +130,7 @@ contract ThesisFactoryTest is Test {
         usdt.mint(bob, 1_000 * ONE_USDT);
         vm.startPrank(bob);
         usdt.approve(address(basket), 1_000 * ONE_USDT);
-        uint256 shares = basket.mint(1_000 * ONE_USDT, 0);
+        uint256 shares = basket.mint(1_000 * ONE_USDT, 0, _blobs(2));
         vm.stopPrank();
 
         assertEq(shares, 1_000e18);
@@ -184,7 +184,7 @@ contract ThesisFactoryTest is Test {
         usdt.mint(bob, 1_000 * ONE_USDT);
         vm.startPrank(bob);
         usdt.approve(address(basket), 1_000 * ONE_USDT);
-        basket.mint(1_000 * ONE_USDT, 0);
+        basket.mint(1_000 * ONE_USDT, 0, _blobs(2));
         vm.stopPrank();
 
         assertEq(usdt.balanceOf(address(factory)), 0);
@@ -209,6 +209,13 @@ contract ThesisFactoryTest is Test {
     }
 
     /* ---------------------------------------------------------------- helpers */
+
+    function _blobs(uint256 n) private pure returns (bytes[] memory data) {
+        data = new bytes[](n);
+        for (uint256 i; i < n; ++i) {
+            data[i] = hex"01";
+        }
+    }
 
     function _create(string memory name_, string memory symbol_, string memory theme_)
         private

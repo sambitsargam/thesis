@@ -162,7 +162,7 @@ contract ThesisBasketTest is Test {
     function test_RevertWhen_MintAmountIsZero() public {
         vm.prank(alice);
         vm.expectRevert(ThesisBasket.ZeroAmount.selector);
-        basket.mint(0, 0);
+        basket.mint(0, 0, _blobs(tokens.length));
     }
 
     function test_RevertWhen_MintSlippageExceeded() public {
@@ -174,7 +174,7 @@ contract ThesisBasketTest is Test {
                 ThesisBasket.SlippageExceeded.selector, 1_000 * ONE_SHARE, 1_001 * ONE_SHARE
             )
         );
-        basket.mint(1_000 * ONE_USDT, 1_001 * ONE_SHARE);
+        basket.mint(1_000 * ONE_USDT, 1_001 * ONE_SHARE, _blobs(tokens.length));
         vm.stopPrank();
     }
 
@@ -184,8 +184,9 @@ contract ThesisBasketTest is Test {
         // ERC-8021 appends the builder code after the ABI-encoded arguments. Nothing in
         // the contract strips it, so this proves the decoder tolerates the suffix.
         bytes memory builderCode = hex"8021deadbeefcafe";
-        bytes memory payload =
-            bytes.concat(abi.encodeCall(ThesisBasket.mint, (1_000 * ONE_USDT, 0)), builderCode);
+        bytes memory payload = bytes.concat(
+            abi.encodeCall(ThesisBasket.mint, (1_000 * ONE_USDT, 0, _blobs(tokens.length))), builderCode
+        );
 
         vm.startPrank(alice);
         usdt.approve(address(basket), 1_000 * ONE_USDT);
@@ -266,7 +267,8 @@ contract ThesisBasketTest is Test {
             tokenIn: address(xnvda),
             tokenOut: address(xamd),
             amountIn: 0.5e18,
-            minAmountOut: 1e18
+            minAmountOut: 1e18,
+            swapData: hex"01"
         });
 
         vm.prank(agent);
@@ -286,13 +288,15 @@ contract ThesisBasketTest is Test {
             tokenIn: address(xnvda),
             tokenOut: address(usdt),
             amountIn: 0.5e18,
-            minAmountOut: 50 * ONE_USDT
+            minAmountOut: 50 * ONE_USDT,
+            swapData: hex"01"
         });
         legs[1] = ThesisBasket.Leg({
             tokenIn: address(usdt),
             tokenOut: address(xamd),
             amountIn: 50 * ONE_USDT,
-            minAmountOut: 1e18
+            minAmountOut: 1e18,
+            swapData: hex"01"
         });
 
         vm.prank(agent);
@@ -310,7 +314,8 @@ contract ThesisBasketTest is Test {
             tokenIn: address(xnvda),
             tokenOut: address(usdt),
             amountIn: 0.5e18,
-            minAmountOut: 50 * ONE_USDT
+            minAmountOut: 50 * ONE_USDT,
+            swapData: hex"01"
         });
 
         vm.prank(agent);
@@ -445,6 +450,14 @@ contract ThesisBasketTest is Test {
 
     /* ---------------------------------------------------------------- helpers */
 
+    /// @dev The mock venue ignores the blob, but the basket still checks one per leg.
+    function _blobs(uint256 n) private pure returns (bytes[] memory data) {
+        data = new bytes[](n);
+        for (uint256 i; i < n; ++i) {
+            data[i] = hex"01";
+        }
+    }
+
     function _price(MockERC20 equity, uint256 usdtPerShare) private {
         router.setRate(address(usdt), address(equity), 1e18, usdtPerShare * ONE_USDT);
     }
@@ -457,7 +470,7 @@ contract ThesisBasketTest is Test {
         _fund(who, quoteAmount);
         vm.startPrank(who);
         usdt.approve(address(basket), quoteAmount);
-        shares = basket.mint(quoteAmount, 0);
+        shares = basket.mint(quoteAmount, 0, _blobs(tokens.length));
         vm.stopPrank();
     }
 
@@ -471,7 +484,8 @@ contract ThesisBasketTest is Test {
             tokenIn: tokenIn,
             tokenOut: tokenOut,
             amountIn: amountIn,
-            minAmountOut: minAmountOut
+            minAmountOut: minAmountOut,
+            swapData: hex"01"
         });
     }
 
