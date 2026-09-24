@@ -13,7 +13,6 @@ interface Props {
   constituents: readonly `0x${string}`[];
   initial: LiveBasket;
   explorerBase: string;
-  builderCode?: string;
 }
 
 export default function LiveBasketView(props: Props) {
@@ -60,7 +59,6 @@ export default function LiveBasketView(props: Props) {
           constituents={props.constituents}
           holdings={data.holdings}
           supplyIsZero={supply === 0}
-          builderCode={props.builderCode}
           onChanged={() => {
             setJustMinted(true);
             void refresh();

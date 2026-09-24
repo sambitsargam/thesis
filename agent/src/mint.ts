@@ -1,6 +1,6 @@
 import {createPublicClient, createWalletClient, encodeFunctionData, formatUnits, http} from "viem";
 import {privateKeyToAccount} from "viem/accounts";
-import {appendBuilderCode, deploymentFor, erc20Abi, thesisBasketAbi, xLayer} from "@thesis/shared";
+import {builderCodeSuffix, deploymentFor, erc20Abi, thesisBasketAbi, xLayer} from "@thesis/shared";
 import {fetchSwapQuote} from "@thesis/shared/okx";
 
 const CHAIN_ID = 196;
@@ -73,17 +73,16 @@ async function main(): Promise<void> {
   const minSharesOut =
     supply === 0n ? (quoteAmount * 10n ** BigInt(SHARE_DECIMALS)) / 10n ** BigInt(QUOTE_DECIMALS) : 0n;
 
-  const data = appendBuilderCode(
-    encodeFunctionData({
-      abi: thesisBasketAbi,
-      functionName: "mint",
-      args: [quoteAmount, minSharesOut, swapData]
-    }),
-    process.env.BUILDER_CODE
-  );
+  const data = encodeFunctionData({
+    abi: thesisBasketAbi,
+    functionName: "mint",
+    args: [quoteAmount, minSharesOut, swapData]
+  });
 
   console.log(`\nminSharesOut ${formatUnits(minSharesOut, SHARE_DECIMALS)}`);
+  const suffix = builderCodeSuffix(process.env.BUILDER_CODE);
   console.log(`calldata     ${data.length / 2 - 1} bytes`);
+  console.log(`builder code ${process.env.BUILDER_CODE ?? "(not set)"}${suffix ? ` · +${suffix.length / 2 - 1} byte ERC-8021 suffix` : ""}`);
 
   if (!send) {
     console.log("\nDry run. Re-run with --send to submit.");
@@ -93,7 +92,13 @@ async function main(): Promise<void> {
   const key = process.env.DEPLOYER_PRIVATE_KEY;
   if (!key) throw new Error("DEPLOYER_PRIVATE_KEY is not set in .env");
   const account = privateKeyToAccount(key.startsWith("0x") ? (key as `0x${string}`) : `0x${key}`);
-  const wallet = createWalletClient({account, chain: xLayer, transport: http(rpc)});
+  // dataSuffix on the client attributes every transaction it sends, approval included.
+  const wallet = createWalletClient({
+    account,
+    chain: xLayer,
+    transport: http(rpc),
+    dataSuffix: builderCodeSuffix(process.env.BUILDER_CODE)
+  });
 
   const allowance = await publicClient.readContract({
     address: deployment.quoteToken,

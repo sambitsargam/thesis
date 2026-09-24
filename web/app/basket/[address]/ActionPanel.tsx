@@ -2,7 +2,7 @@
 
 import {useCallback, useEffect, useState} from "react";
 import {encodeFunctionData, parseUnits} from "viem";
-import {appendBuilderCode, erc20Abi, thesisBasketAbi} from "@thesis/shared";
+import {erc20Abi, thesisBasketAbi} from "@thesis/shared";
 import {useWallet} from "../../WalletProvider";
 
 const QUOTE_DECIMALS = 6;
@@ -20,7 +20,6 @@ interface Props {
   constituents: readonly `0x${string}`[];
   holdings: Holding[];
   supplyIsZero: boolean;
-  builderCode?: string;
   onChanged?: () => void;
 }
 
@@ -137,14 +136,11 @@ export default function ActionPanel(props: Props) {
     });
 
     const minSharesOut = props.supplyIsZero ? quoteAmount * 10n ** 12n : 0n;
-    const data = appendBuilderCode(
-      encodeFunctionData({
-        abi: thesisBasketAbi,
-        functionName: "mint",
-        args: [quoteAmount, minSharesOut, body.quotes.map((q) => q.data)]
-      }),
-      props.builderCode
-    );
+    const data = encodeFunctionData({
+      abi: thesisBasketAbi,
+      functionName: "mint",
+      args: [quoteAmount, minSharesOut, body.quotes.map((q) => q.data)]
+    });
 
     setPhase("sending");
     setTxHash(await client!.sendTransaction({account: account!, chain: null, to: props.basket, data}));
@@ -155,10 +151,11 @@ export default function ActionPanel(props: Props) {
     if (shares <= 0n) throw new Error("Enter an amount above zero.");
 
     // Redemption is in kind and needs no venue: the claim is a share of what is held.
-    const data = appendBuilderCode(
-      encodeFunctionData({abi: thesisBasketAbi, functionName: "redeem", args: [shares]}),
-      props.builderCode
-    );
+    const data = encodeFunctionData({
+      abi: thesisBasketAbi,
+      functionName: "redeem",
+      args: [shares]
+    });
 
     setPhase("sending");
     setTxHash(await client!.sendTransaction({account: account!, chain: null, to: props.basket, data}));

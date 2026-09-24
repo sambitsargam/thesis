@@ -72,7 +72,6 @@ export default async function BasketPage({params}: {params: Promise<{address: st
           constituents={constituents}
           initial={initial}
           explorerBase={explorer("")}
-          builderCode={process.env.BUILDER_CODE}
         />
 
         <section className="section">

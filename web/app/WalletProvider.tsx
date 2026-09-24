@@ -2,7 +2,7 @@
 
 import {createContext, type ReactNode, useCallback, useContext, useMemo, useState} from "react";
 import {createWalletClient, custom, type WalletClient} from "viem";
-import {xLayer} from "@thesis/shared";
+import {builderCodeSuffix, xLayer} from "@thesis/shared";
 
 export interface Eip1193Provider {
   request(args: {method: string; params?: unknown[]}): Promise<unknown>;
@@ -27,6 +27,10 @@ interface WalletState {
 }
 
 const WalletContext = createContext<WalletState | null>(null);
+
+// One suffix for the whole app: set on the client, so every transaction it sends
+// carries attribution — approvals included — with no per-call bookkeeping.
+const DATA_SUFFIX = builderCodeSuffix(process.env.NEXT_PUBLIC_BUILDER_CODE);
 
 declare global {
   interface Window {
@@ -79,7 +83,11 @@ export function WalletProvider({children}: {children: ReactNode}) {
   const connect = useCallback(async (detected: DetectedWallet) => {
     setError("");
     try {
-      const client = createWalletClient({chain: xLayer, transport: custom(detected.provider)});
+      const client = createWalletClient({
+        chain: xLayer,
+        transport: custom(detected.provider),
+        dataSuffix: DATA_SUFFIX
+      });
       const [address] = await client.requestAddresses();
       if (!address) throw new Error("No account authorised.");
       await client.switchChain({id: xLayer.id}).catch(() => undefined);
@@ -105,7 +113,13 @@ export function WalletProvider({children}: {children: ReactNode}) {
 
   const client = useMemo(
     () =>
-      wallet ? createWalletClient({chain: xLayer, transport: custom(wallet.provider)}) : null,
+      wallet
+        ? createWalletClient({
+            chain: xLayer,
+            transport: custom(wallet.provider),
+            dataSuffix: DATA_SUFFIX
+          })
+        : null,
     [wallet]
   );
 

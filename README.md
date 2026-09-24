@@ -109,9 +109,30 @@ adapter never holds a balance between swaps.
 
 ### Builder Code
 
-Every state-changing call accepts an ERC-8021 builder code appended to its calldata.
-`ThesisBasket` ignores the trailing bytes by design, proven by
-`test_MintAcceptsTrailingBuilderCodeCalldata`.
+Transactions are attributed with the X Layer Builder Code **`3dwgfzivgeb4b9yg`**,
+minted from the [OKX developer portal](https://web3.okx.com/onchainos/dev-portal)
+against the registry at
+[`0xd6c426f9…0510823b`](https://www.oklink.com/xlayer/address/0xd6c426f9c077358735622ae5a83468dc0510823b).
+
+Attribution uses the [ERC-8021](https://eip.tools/eip/8021) data suffix, built by
+`ox` and set as `dataSuffix` on the viem wallet client. Every transaction that
+client sends carries it — the ERC-20 approval as well as the mint — rather than
+only the calls that remembered to add it. The suffix is 34 bytes:
+
+```
+3dwgfzivgeb4b9yg  10  00  80218021802180218021802180218021
+└ code, 16 bytes  │   │   └ ERC-8021 marker, 16 bytes
+                  │   └ schema id
+                  └ code length
+```
+
+Contracts need no changes: the decoder ignores trailing calldata, which
+`test_MintAcceptsTrailingBuilderCodeCalldata` proves against the real `mint`
+selector. Cost is 16 gas per non-zero byte.
+
+Verify attribution on any transaction with the
+[Builder Code checker](https://builder-code.vercel.app/checker), or read it beside
+the txn hash on OKLink.
 
 ## Development
 

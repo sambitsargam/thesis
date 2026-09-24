@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "viem": "^2.21.45"
+    "viem": "^2.45.0",
+    "ox": "^0.9.6"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

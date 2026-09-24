@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@thesis/shared": "workspace:*",
-    "viem": "^2.21.45"
+    "viem": "^2.45.0"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

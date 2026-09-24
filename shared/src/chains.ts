@@ -15,7 +15,7 @@ export const xLayer = defineChain({
 
 /** X Layer testnet. Faucet is rate limited to 0.01 OKB per day. */
 export const xLayerTestnet = defineChain({
-  id: 195,
+  id: 1952,
   name: "X Layer Testnet",
   testnet: true,
   nativeCurrency: {name: "OKB", symbol: "OKB", decimals: 18},
@@ -23,7 +23,7 @@ export const xLayerTestnet = defineChain({
     default: {http: ["https://testrpc.xlayer.tech"]}
   },
   blockExplorers: {
-    default: {name: "OKLink", url: "https://www.oklink.com/xlayer-test"}
+    default: {name: "OKLink", url: "https://www.oklink.com/x-layer-testnet"}
   }
 });
 
