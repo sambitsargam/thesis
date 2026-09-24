@@ -69,6 +69,18 @@ The basket now holds real equities, redeemable in kind at any time:
 Shares were minted at exactly `minSharesOut`, so nothing was lost to slippage on
 the way in.
 
+### Available constituents
+
+X Layer carries **639 tokenized equities**, read from
+`GET /api/v6/dex/aggregator/all-tokens?chainIndex=196` and cached in
+`shared/src/xstocks.json`. All are 18 decimals. The launcher searches the whole
+catalogue by ticker or company name; the list stays server-side so it never enters
+the browser bundle.
+
+Because constituents are fixed at deployment, the launcher quotes every selected
+equity against USD₮0 **before** spending gas — a basket holding something the
+aggregator cannot route could never be minted.
+
 ### The demo basket
 
 **Thesis US Megacaps** (`THESIS-TECH`) — *"US megacap equities, equal weight"*, three

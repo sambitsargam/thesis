@@ -1,17 +1,21 @@
 "use client";
 
 import {useRouter} from "next/navigation";
-import {useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {decodeEventLog} from "viem";
-import {thesisFactoryAbi, XSTOCKS} from "@thesis/shared";
+import {thesisFactoryAbi, type TokenizedEquity, XSTOCKS} from "@thesis/shared";
 import {useWallet} from "../WalletProvider";
 
 const MAX_CONSTITUENTS = 10;
 
 const PRESETS = [
-  {theme: "US megacap equities, equal weight", symbol: "MEGA", tickers: ["NVDAx", "TSLAx", "SPYx"]},
-  {theme: "AI and electric vehicles, equal weight", symbol: "AIEV", tickers: ["NVDAx", "TSLAx"]},
-  {theme: "Broad market plus semiconductors", symbol: "BRDS", tickers: ["SPYx", "NVDAx"]}
+  {
+    theme: "semiconductor supply chain, equal weight",
+    symbol: "SEMI",
+    tickers: ["NVDAx", "AMDx", "TSMx", "ASMLx"]
+  },
+  {theme: "US megacap technology, equal weight", symbol: "MEGA", tickers: ["AAPLx", "AMZNx", "NVDAx"]},
+  {theme: "AI and electric vehicles, equal weight", symbol: "AIEV", tickers: ["NVDAx", "TSLAx"]}
 ];
 
 export default function LaunchForm({factory}: {factory: `0x${string}`}) {
@@ -21,12 +25,40 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
   const [theme, setTheme] = useState("");
   const [symbol, setSymbol] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<TokenizedEquity[]>(XSTOCKS);
+  const [total, setTotal] = useState<number | null>(null);
+  const [searching, setSearching] = useState(false);
+  const known = useRef(new Map<string, TokenizedEquity>(XSTOCKS.map((t) => [t.address, t])));
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{hash: string; basket?: string} | null>(null);
 
   const weight = picked.length > 0 ? 100 / picked.length : 0;
   const name = useMemo(() => (theme.trim() ? `Thesis ${theme.trim()}` : ""), [theme]);
+
+  // Debounced so typing a ticker does not fire a request per keystroke.
+  const search = useCallback(async (term: string) => {
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/tokens?q=${encodeURIComponent(term)}`);
+      if (!response.ok) return;
+      const body = (await response.json()) as {tokens: TokenizedEquity[]; total: number};
+      for (const token of body.tokens) known.current.set(token.address, token);
+      setResults(body.tokens);
+      setTotal(body.total);
+    } catch {
+      // Keep whatever is on screen; the catalogue is a convenience, not a gate.
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void search(query), query ? 220 : 0);
+    return () => clearTimeout(timer);
+  }, [query, search]);
 
   function toggle(address: string) {
     setError("");
@@ -49,6 +81,11 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
     );
   }
 
+  /** Selected tokens stay visible even when a search no longer returns them. */
+  const selected = picked
+    .map((address) => known.current.get(address))
+    .filter((t): t is TokenizedEquity => Boolean(t));
+
   async function launch() {
     if (!account || !client) return;
     setBusy(true);
@@ -58,6 +95,24 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
       if (!theme.trim()) throw new Error("Describe the theme first.");
       if (!symbol.trim()) throw new Error("Pick a ticker symbol.");
       if (picked.length === 0) throw new Error("Select at least one equity.");
+
+      // Constituents are fixed at deployment, so an unroutable one makes the basket
+      // permanently unmintable. Prove every leg quotes before spending gas.
+      setChecking(true);
+      const probe = await fetch("/api/quote", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          legs: picked.map((token) => ({token, amount: "1000000"}))
+        })
+      });
+      setChecking(false);
+      if (!probe.ok) {
+        const body = (await probe.json()) as {error?: string};
+        throw new Error(
+          `One of these equities cannot be routed from USD₮0 yet, so the basket could never be minted. ${body.error ?? ""}`.trim()
+        );
+      }
 
       const hash = await client.writeContract({
         account,
@@ -92,6 +147,7 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
       setError(err instanceof Error ? err.message.split("\n")[0]! : "Could not create the basket.");
     } finally {
       setBusy(false);
+      setChecking(false);
     }
   }
 
@@ -130,7 +186,7 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
         </div>
 
         <div className="field" style={{marginTop: 22}}>
-          <label>
+          <label htmlFor="search">
             Constituents
             {picked.length > 0 && (
               <span className="avail">
@@ -139,8 +195,29 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
               </span>
             )}
           </label>
+
+          <input
+            id="search"
+            value={query}
+            placeholder={
+              total ? `Search ${total} tokenized equities — try NVDA, ASML, Apple` : "Search equities…"
+            }
+            onChange={(e) => setQuery(e.target.value)}
+          />
+
+          {selected.length > 0 && (
+            <div className="chosen">
+              {selected.map((token) => (
+                <button key={token.address} className="chosen-chip" onClick={() => toggle(token.address)}>
+                  {token.ticker}
+                  <span aria-hidden="true">×</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="picker">
-            {XSTOCKS.map((token) => {
+            {results.map((token) => {
               const on = picked.includes(token.address);
               return (
                 <button
@@ -156,6 +233,10 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
               );
             })}
           </div>
+
+          {results.length === 0 && !searching && (
+            <p className="status">No equity matches &ldquo;{query}&rdquo;.</p>
+          )}
         </div>
 
         {!account ? (
@@ -164,7 +245,7 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
           </button>
         ) : (
           <button onClick={launch} disabled={busy} style={{marginTop: 22, width: "100%"}}>
-            {busy ? "Deploying…" : "Deploy basket"}
+            {checking ? "Checking routes…" : busy ? "Deploying…" : "Deploy basket"}
           </button>
         )}
 

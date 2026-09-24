@@ -857,3 +857,22 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 }
 .received-name { font-weight: 580; }
 .received-amt { color: var(--ink-dim); font-size: 0.82rem; }
+
+.chosen { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+
+.chosen-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+  font-weight: 580;
+}
+.chosen-chip:hover { opacity: 0.8; }
+.chosen-chip span { opacity: 0.7; font-size: 0.9em; }
+
+.picker { max-height: 268px; overflow-y: auto; padding-right: 2px; }
