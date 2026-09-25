@@ -3,7 +3,7 @@
 **Describe an investment theme in plain language. Get a tradeable, fully backed
 basket of tokenized equities on X Layer — deployed and minted in one transaction.**
 
-**Live app → [thesis-xlayer.vercel.app](https://thesis-xlayer.vercel.app)**
+**Live app → [thesisindex.vercel.app](https://thesisindex.vercel.app)**
 
 Built for OKX Dev Day 2026 · Build a Market track · everything below is live on
 X Layer mainnet (chain 196).
