@@ -208,10 +208,22 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
       });
       setChecking(false);
       if (!probe.ok) {
-        const body = (await probe.json()) as {error?: string};
-        throw new Error(
-          `One of these equities cannot be routed from USD₮0 yet, so the basket could never be minted. ${body.error ?? ""}`.trim()
-        );
+        const body = (await probe.json()) as {error?: string; unroutable?: string[]};
+        const names = (body.unroutable ?? [])
+          .map((a) => known.current.get(a)?.ticker ?? a.slice(0, 8))
+          .join(", ");
+
+        // Drop the dead ones rather than blocking: the basket is fine without them.
+        if (body.unroutable?.length) {
+          const keep = picked.filter((a) => !body.unroutable!.includes(a));
+          setPicked(keep);
+          throw new Error(
+            keep.length > 0
+              ? `${names} has no liquidity on X Layer yet, so a basket holding it could never be minted. Removed — press Deploy again to launch with the remaining ${keep.length}.`
+              : `None of these have liquidity on X Layer yet. Try a different theme.`
+          );
+        }
+        throw new Error(body.error ?? "Could not verify the routes.");
       }
 
       const hash = await client.writeContract({

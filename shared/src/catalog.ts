@@ -1,5 +1,27 @@
+import routable from "./routable.json";
 import xstocks from "./xstocks.json";
 import type {TokenizedEquity} from "./tokens";
+
+/**
+ * Addresses confirmed to have live DEX liquidity from USD₮0.
+ *
+ * The aggregator lists far more tokens than can actually be traded. A basket
+ * holding an illiquid one can never be minted, and constituents are fixed at
+ * deployment, so selection is restricted to this set.
+ *
+ * Regenerate with `demo/probe-liquidity.ts` when liquidity changes.
+ */
+const ROUTABLE = new Set((routable as string[]).map((a) => a.toLowerCase()));
+
+export function isRoutable(address: string): boolean {
+  return ROUTABLE.has(address.toLowerCase());
+}
+
+/** How many equities can actually be bought right now. */
+export const ROUTABLE_COUNT = ROUTABLE.size;
+
+/** Every xStock the aggregator lists, tradeable or not. */
+export const LISTED_COUNT = xstocks.length;
 
 /**
  * Every tokenized equity the OKX aggregator lists on X Layer, generated from
@@ -9,7 +31,7 @@ import type {TokenizedEquity} from "./tokens";
  * a browser bundle. Import it from a route handler and search there — the client
  * receives only what it asked for.
  */
-export const XSTOCK_CATALOG: TokenizedEquity[] = (xstocks as Array<{
+const ALL_XSTOCKS: TokenizedEquity[] = (xstocks as Array<{
   ticker: string;
   name: string;
   address: string;
@@ -20,6 +42,11 @@ export const XSTOCK_CATALOG: TokenizedEquity[] = (xstocks as Array<{
   address: token.address as `0x${string}`,
   wrapped: token.ticker.startsWith("w")
 }));
+
+/** Only equities that can actually be traded. Everything downstream uses this. */
+export const XSTOCK_CATALOG: TokenizedEquity[] = ALL_XSTOCKS.filter((t) =>
+  isRoutable(t.address)
+);
 
 /**
  * Ranks exact ticker matches first, then prefixes, then anything containing the term.

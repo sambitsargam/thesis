@@ -12,7 +12,8 @@ X Layer mainnet (chain 196).
 
 ## The problem
 
-There are **639 tokenized equities** on X Layer and they are sold one at a time.
+X Layer carries **639 tokenized equities**, **44 of them with live DEX liquidity
+today** — and they are sold one at a time.
 Expressing a view — *"semiconductor supply chain"*, *"nuclear power and grid
 modernisation"* — means many swaps, many fees, manual weighting and manual
 rebalancing forever. Every index product in traditional finance exists because this
@@ -117,7 +118,7 @@ deliberately separate passes:
 1. **Search** — a model with web search reads current coverage and writes a briefing,
    keeping every page it cites.
 2. **Select** — a second pass turns that briefing into constituents, constrained to the
-   639 equities that actually exist on X Layer, with one reason per holding.
+   44 equities that can actually be traded on X Layer, with one reason per holding.
 
 Splitting them matters. Research is open-ended; selection is not. The second pass only
 ever sees the real catalogue and unknown tickers are discarded — **a basket is
@@ -165,7 +166,7 @@ dilutes the minter and never the existing holders —
 | Path | Contents |
 | --- | --- |
 | `contracts/` | Foundry — 5 contracts, 661 lines of Solidity, **73 tests** |
-| `shared/` | ABIs, addresses, the OKX client, the AI agent, the 639-equity catalogue |
+| `shared/` | ABIs, addresses, the OKX client, the AI agent, the equity catalogue |
 | `agent/` | CLI — `mint`, `resolve`, `research` |
 | `web/` | Next.js app on Vercel |
 

@@ -31,6 +31,8 @@ export async function POST(request: Request) {
 
     const deployment = deploymentFor(CHAIN_ID);
 
+    // Quote legs one at a time when a batch fails, so the caller learns which
+    // token has no liquidity rather than just that something did.
     const results = await fetchSwapQuotes(
       legs.map((leg) => ({
         token: leg.token,
@@ -61,6 +63,34 @@ export async function POST(request: Request) {
     return NextResponse.json({quotes});
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Quote failed";
+
+    // On an illiquid-token failure, find the offenders so the UI can name them.
+    if (/82000|liquidity/i.test(message)) {
+      const body = await request
+        .clone()
+        .json()
+        .then((b: {legs?: Array<{token: string}>}) => b)
+        .catch(() => ({legs: []}));
+
+      const unroutable: string[] = [];
+      for (const leg of body.legs ?? []) {
+        try {
+          await fetchSwapQuotes([{token: leg.token, amount: 10_000_000n}], {
+            chainId: CHAIN_ID,
+            fromToken: deploymentFor(CHAIN_ID).quoteToken,
+            slippagePercent: "1",
+            holder: deploymentFor(CHAIN_ID).router
+          });
+        } catch {
+          unroutable.push(leg.token);
+        }
+      }
+      return NextResponse.json(
+        {error: "Insufficient liquidity", unroutable},
+        {status: 502}
+      );
+    }
+
     return NextResponse.json({error: message}, {status: 502});
   }
 }
