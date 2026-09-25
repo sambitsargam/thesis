@@ -48,10 +48,20 @@ problem is real. On-chain it should be one click.
 | `THESIS-TECH` (demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
 
 **Proof it works end to end** — mint transaction
-[`0xc9521156…e43f38f9`](https://www.oklink.com/xlayer/tx/0xc9521156d21981f52f94d005ccd5ffe805b3e39008df34ab04e3c24ae43f38f9)
-(block 71494224): 3.000000 USD₮0 in, 3.000000 THESIS-TECH out, backed by real NVDAx,
-TSLAx and SPYx. OKX aggregator quote → `OkxTradeRouter` → OKX `DexRouter` → measured
-fills → shares minted at exactly `minSharesOut`.
+[`0x798d56e0…c4d52a43`](https://www.oklink.com/xlayer/tx/0x798d56e069a1b1893612d8d5282d59f7da01dc884c1ec4c54ed89874c4d52a43)
+(block 71543715): 1.200000 USD₮0 in, 1.200000 THESIS-TECH out, backed by real NVDAx,
+TSLAx and SPYx, with the ERC-8021 Builder Code appended to the calldata. OKX aggregator
+quote → `OkxTradeRouter` → OKX `DexRouter` → measured fills → shares minted at exactly
+`minSharesOut`.
+
+Decoded from that transaction's own calldata:
+
+```
+33647767667a69766765623462397967 10 00 80218021802180218021802180218021
+└ "3dwgfzivgeb4b9yg"              │  │  └ ERC-8021 marker
+                                  │  └ schema id
+                                  └ code length, 16 bytes
+```
 
 Baskets are quoted in [USD₮0](https://www.oklink.com/xlayer/address/0x779Ded0c9e1022225f8E0630b35a9b54bE713736)
 (`0x779Ded0c…`, 6 decimals).
