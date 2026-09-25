@@ -1,6 +1,6 @@
 "use client";
 
-import {createContext, type ReactNode, useCallback, useContext, useMemo, useState} from "react";
+import {createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState} from "react";
 import {createWalletClient, custom, type WalletClient} from "viem";
 import {builderCodeSuffix, xLayer} from "@thesis/shared";
 
@@ -27,6 +27,9 @@ interface WalletState {
 }
 
 const WalletContext = createContext<WalletState | null>(null);
+
+/** Which wallet the visitor last chose, so the session survives a page load. */
+const REMEMBERED = "thesis.wallet.rdns";
 
 declare global {
   interface Window {
@@ -85,6 +88,40 @@ export function WalletProvider({
     return list;
   }, []);
 
+  /**
+   * Restores a previous session without prompting.
+   *
+   * `eth_accounts` reports an existing authorisation and never opens the wallet,
+   * unlike `eth_requestAccounts`. Without this, a full page load drops the
+   * connection and the app asks a visitor to reconnect on every navigation.
+   */
+  useEffect(() => {
+    const rdns = localStorage.getItem(REMEMBERED);
+    if (!rdns) return;
+
+    let cancelled = false;
+    const onAnnounce = async (event: CustomEvent<DetectedWallet>) => {
+      if (cancelled || event.detail.info.rdns !== rdns) return;
+      try {
+        const accounts = (await event.detail.provider.request({
+          method: "eth_accounts"
+        })) as string[];
+        if (cancelled || !accounts?.[0]) return;
+        setWallet(event.detail);
+        setAccount(accounts[0] as `0x${string}`);
+      } catch {
+        // Wallet locked or permission revoked: stay disconnected, prompt nothing.
+      }
+    };
+
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    return () => {
+      cancelled = true;
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+    };
+  }, []);
+
   const connect = useCallback(async (detected: DetectedWallet) => {
     setError("");
     try {
@@ -99,12 +136,14 @@ export function WalletProvider({
       setWallet(detected);
       setAccount(address);
       setWallets(null);
+      localStorage.setItem(REMEMBERED, detected.info.rdns);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message.split("\n")[0]! : "Could not connect.");
     }
   }, []);
 
   const disconnect = useCallback(() => {
+    localStorage.removeItem(REMEMBERED);
     setWallet(null);
     setAccount(null);
     setWallets(null);

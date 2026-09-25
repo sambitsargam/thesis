@@ -31,6 +31,8 @@ pnpm-debug.log*
 # local editor and agent tooling
 .claude/
 CLAUDE.md
+DEMO-SCRIPT.md
+demo/
 
 # os
 .DS_Store

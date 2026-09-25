@@ -12,12 +12,21 @@
     "build:contracts": "forge build --root contracts",
     "fmt:contracts": "forge fmt --root contracts",
     "check": "pnpm build:contracts && pnpm test:contracts && pnpm typecheck",
-    "build:all": "pnpm -r build"
+    "build:all": "pnpm -r build",
+    "demo:narrate": "node --env-file=.env --import tsx demo/narrate.ts",
+    "demo:record": "node --env-file=.env --import tsx demo/record.ts",
+    "demo:browser": "node --env-file=.env --import tsx demo/open-browser.ts",
+    "demo:screen": "node --env-file=.env --import tsx demo/screen.ts",
+    "demo:mux": "node --import tsx demo/mux.ts",
+    "demo:preflight": "node --env-file=.env --import tsx demo/preflight.ts"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0",
+    "playwright": "^1.63.0",
     "tsx": "^4.19.2",
-    "@types/node": "^22.9.0"
+    "typescript": "^5.6.3",
+    "viem": "^2.45.0",
+    "@thesis/shared": "workspace:*"
   },
   "engines": {
     "node": ">=20.9.0"
