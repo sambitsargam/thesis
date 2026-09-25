@@ -4,6 +4,7 @@
 basket of tokenized equities on X Layer — deployed and minted in one transaction.**
 
 **Live app → [thesisindex.vercel.app](https://thesisindex.vercel.app)**
+**Demo video → [youtu.be/3p_6OKx7yOE](https://youtu.be/3p_6OKx7yOE)**
 
 Built for OKX Dev Day 2026 · Build a Market track · everything below is live on
 X Layer mainnet (chain 196).
