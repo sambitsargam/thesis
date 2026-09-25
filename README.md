@@ -1,207 +1,76 @@
 # Thesis
 
-**Permissionless index launchpad for tokenized equities on X Layer.**
-Describe an investment theme in plain language and a tradeable basket of tokenized
-equities is deployed on X Layer in one transaction.
+**Describe an investment theme in plain language. Get a tradeable, fully backed
+basket of tokenized equities on X Layer — deployed and minted in one transaction.**
 
-**Live app: [thesis-xlayer.vercel.app](https://thesis-xlayer.vercel.app)**
+**Live app → [thesis-xlayer.vercel.app](https://thesis-xlayer.vercel.app)**
 
-Built for OKX Dev Day 2026 — Build a Market track.
+Built for OKX Dev Day 2026 · Build a Market track · everything below is live on
+X Layer mainnet (chain 196).
 
 ---
 
 ## The problem
 
-Tokenized stocks on X Layer are sold one at a time. Any diversified position means
-multiple swaps, multiple fees, manual weighting and manual rebalancing forever.
-There is no way to express a thematic view as a single holdable asset.
+There are **639 tokenized equities** on X Layer and they are sold one at a time.
+Expressing a view — *"semiconductor supply chain"*, *"nuclear power and grid
+modernisation"* — means many swaps, many fees, manual weighting and manual
+rebalancing forever. Every index product in traditional finance exists because this
+problem is real. On-chain it should be one click.
 
-## How it works
-
-1. A user describes a theme — *"semiconductor supply chain, equal weight"*.
-2. The agent resolves it into a set of tokenized equities (xStocks) on X Layer.
-3. `ThesisFactory` deploys a `ThesisBasket` ERC-20 for that theme.
-4. The user mints basket tokens with USDT. The contract buys the constituents at
-   market through Onchain OS Trade and holds them. The basket is fully backed.
-5. Redeeming burns basket tokens and returns the underlying.
-6. The agent can trigger a rebalance back to equal weight.
-
-## Repository layout
-
-| Path         | Contents                                                        |
-| ------------ | --------------------------------------------------------------- |
-| `contracts/` | Foundry project — `ThesisBasket`, `ThesisFactory`, tests, deploy |
-| `shared/`    | ABIs, deployed addresses, chain config, builder-code helper       |
-| `agent/`     | Persistent Node worker — theme resolution, event watching         |
-| `web/`       | Next.js app — theme input, basket gallery, mint and redeem        |
-
-## Deployed contracts
-
-Live on **X Layer mainnet (chain 196)**, deployed 24 September 2026 in block 71491743.
-
-| Contract | Address | Explorer |
-| --- | --- | --- |
-| `ThesisFactory` | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
-| `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
-| `THESIS-TECH` basket | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
-| `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
-
-### Proven on mainnet
-
-The full path has executed end to end on chain 196 — OKX aggregator quote →
-`OkxTradeRouter` → OKX `DexRouter` → measured fills → shares minted.
-
-| | |
-| --- | --- |
-| Mint transaction | [`0xc9521156…e43f38f9`](https://www.oklink.com/xlayer/tx/0xc9521156d21981f52f94d005ccd5ffe805b3e39008df34ab04e3c24ae43f38f9) |
-| Block | 71494224 |
-| Paid in | 3.000000 USD₮0 |
-| Received | 3.000000 THESIS-TECH |
-
-The basket now holds real equities, redeemable in kind at any time:
-
-| Constituent | Basket holds | Per whole share |
-| --- | --- | --- |
-| NVDAx | 0.004509688 | 0.001503229 |
-| TSLAx | 0.002652390 | 0.000884130 |
-| SPYx | 0.001307238 | 0.000435746 |
-
-Shares were minted at exactly `minSharesOut`, so nothing was lost to slippage on
-the way in.
-
-### Shareable baskets
-
-Every basket has its own metadata and a **generated social card** rendered per
-request from chain state — name, theme, constituents, weight and share count. Paste a
-basket link into a chat or a timeline and it unfurls with the live basket rather than
-a generic logo, so the creator's pitch travels with the link.
-
-That is the growth loop: a basket is worth deploying only if other people can find it,
-and anyone with the link can mint it. A **Share** button on each basket copies the
-link, using the native share sheet where one exists.
-
-### Deep research
-
-`POST /api/research` searches the open web before choosing anything. It runs in two
-passes, deliberately separated:
-
-1. **Search.** A model with web search reads current coverage of the theme and writes
-   a briefing, keeping every page it cites.
-2. **Select.** A second pass turns that briefing into constituents, constrained to the
-   639 equities that actually exist on X Layer, with one reason per holding.
-
-Splitting them matters: research is open-ended, selection is not. The second pass only
-ever sees the real catalogue, and unknown tickers are dropped — a basket is immutable
-once deployed, so a hallucinated ticker would be permanently unmintable.
-
-The UI shows the outlook, the risks, the reason behind each holding, and every source,
-so a reader can check the reasoning instead of trusting it. Output is a research
-summary from public sources, not investment advice, and says so.
+## What Thesis does
 
 ```
 "nuclear power and grid modernisation"
-  -> NEEx, DUKx, EXCx, PWRx, GEVx   (7 sources cited)
-"AI infrastructure buildout"
-  -> NVDAx, AMDx, MSFTx, GOOGLx, AMZNx, TSMx, PLTRx
+        │
+        ├─ the agent searches the open web and cites what it read
+        ├─ picks NEEx · DUKx · EXCx · PWRx · GEVx from the live catalogue
+        │
+        ▼
+   a new ERC-20, deployed by anyone, owned by nobody
+        │
+   mint with USD₮0 ──► the contract buys all five through Onchain OS Trade
+        │
+   hold one token ──► backed 1:1 by real equities, redeemable any time
+        │
+   sell ──► take the equities out, or cash out to USD₮0 in one transaction
 ```
 
-Also available as `pnpm --filter @thesis/agent research "your theme"`.
+---
 
-### Resolving a theme with AI
+## Live on X Layer mainnet
 
-`POST /api/resolve` turns plain language into constituents. The model is handed the
-real catalogue of 639 equities and told to choose only from it; every ticker it
-returns is then matched back against that catalogue and anything unrecognised is
-discarded. A hallucinated ticker would deploy a basket that could never be minted,
-and constituents are fixed at deployment — so the check is not optional.
+| Contract | Address | |
+| --- | --- | --- |
+| `ThesisFactory` | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
+| `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
+| `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
+| `THESIS-TECH` (demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
 
-```
-"semiconductor supply chain"
-  -> AMATx, ADIx, AVGOx, INTCx, MUx, ONx, TXNx, LRCXx, MPWRx, MCHPx
-"clean energy transition"
-  -> NEEx, CEGx, AEPx, XELx, CMSx, AWKx, PPLx, AMTx
-```
+**Proof it works end to end** — mint transaction
+[`0xc9521156…e43f38f9`](https://www.oklink.com/xlayer/tx/0xc9521156d21981f52f94d005ccd5ffe805b3e39008df34ab04e3c24ae43f38f9)
+(block 71494224): 3.000000 USD₮0 in, 3.000000 THESIS-TECH out, backed by real NVDAx,
+TSLAx and SPYx. OKX aggregator quote → `OkxTradeRouter` → OKX `DexRouter` → measured
+fills → shares minted at exactly `minSharesOut`.
 
-Run it from the terminal with `pnpm --filter @thesis/agent resolve "your theme"`.
+Baskets are quoted in [USD₮0](https://www.oklink.com/xlayer/address/0x779Ded0c9e1022225f8E0630b35a9b54bE713736)
+(`0x779Ded0c…`, 6 decimals).
 
-### Rebalancing
+---
 
-Equal weight is a statement about value, so a basket drifts as its holdings move.
-`POST /api/rebalance` prices every constituent from executable OKX routes, computes
-drift against the equal-weight target, pairs the most overweight against the most
-underweight, and returns signed-ready legs. Below 25 bps of drift it declines to
-trade, because the spread would cost more than the correction is worth.
+## How the OKX integration actually works
 
-The agent submits the plan to `rebalance(Leg[])`. The contract still enforces its own
-invariants: only the agent may call it, every leg must carry a floor price, and the
-basket must end holding no quote token — so a rebalance can trade badly but can never
-move value out.
-
-### Available constituents
-
-X Layer carries **639 tokenized equities**, read from
-`GET /api/v6/dex/aggregator/all-tokens?chainIndex=196` and cached in
-`shared/src/xstocks.json`. All are 18 decimals. The launcher searches the whole
-catalogue by ticker or company name; the list stays server-side so it never enters
-the browser bundle.
-
-Because constituents are fixed at deployment, the launcher quotes every selected
-equity against USD₮0 **before** spending gas — a basket holding something the
-aggregator cannot route could never be minted.
-
-### The demo basket
-
-**Thesis US Megacaps** (`THESIS-TECH`) — *"US megacap equities, equal weight"*, three
-constituents at a 3,333 bps target weight each.
-
-| Constituent | Address |
-| --- | --- |
-| NVDAx | [`0xc845b2894dBddd03858fd2D643B4eF725fE0849d`](https://www.oklink.com/xlayer/address/0xc845b2894dBddd03858fd2D643B4eF725fE0849d) |
-| TSLAx | [`0x8aD3c73F833d3F9A523aB01476625F269aEB7Cf0`](https://www.oklink.com/xlayer/address/0x8aD3c73F833d3F9A523aB01476625F269aEB7Cf0) |
-| SPYx | [`0x90A2a4c76b5D8c0bc892A69EA28Aa775a8f2dD48`](https://www.oklink.com/xlayer/address/0x90A2a4c76b5D8c0bc892A69EA28Aa775a8f2dD48) |
-
-Baskets are minted with [USD₮0](https://www.oklink.com/xlayer/address/0x779Ded0c9e1022225f8E0630b35a9b54bE713736)
-(`0x779Ded0c9e1022225f8E0630b35a9b54bE713736`, 6 decimals).
-
-### Redeeming returns the underlying, not USD₮0
-
-`redeem` burns shares and transfers each constituent pro rata. It needs no price and
-no venue, so it cannot fail on slippage or a missing route — the claim is simply a
-fraction of what the contract holds.
-
-Tokenized equities are not in any wallet's default token list, so the balances arrive
-invisibly unless the token is added. The app prompts the wallet to add them
-(EIP-747 `wallet_watchAsset`) after both minting and redeeming.
-
-Holders who want cash instead can sell through **`ThesisZap`**, which burns shares,
-redeems in kind and sells every constituent through Onchain OS Trade in a single
-transaction. It is a peripheral contract, deliberately not part of `ThesisBasket`:
-baskets are immutable once deployed, and keeping the optional path outside them means
-a routing failure can never block a basket's own redeem. The zap holds nothing between
-calls, returns anything a route declined to take in kind, and refuses any basket whose
-router differs from its own.
-
-## OKX integration
-
-| Piece | How Thesis uses it |
-| --- | --- |
-| **X Layer** | Every contract is deployed to mainnet chain 196. Gas is OKB. |
-| **xStocks** | Baskets hold real tokenized equities. Fully backed — no synthetic exposure. |
-| **Onchain OS Trade** | `OkxTradeRouter` routes every mint swap through the OKX aggregator. |
-
-### How the Trade integration works
-
-Onchain OS Trade is quoted **off-chain**: the aggregator API returns ready-made
-transaction calldata, which no contract can fetch mid-transaction. So `mint` takes one
-calldata blob per constituent, obtained by the caller, and `OkxTradeRouter` forwards each
-to the OKX `DexRouter` after approving `DexTokenApprove` — the two-contract pattern OKX
+**Onchain OS Trade is quoted off-chain.** The aggregator returns ready-made calldata,
+and no contract can call an HTTP API mid-transaction. So `mint` takes one calldata
+blob per constituent, fetched by the caller, and `OkxTradeRouter` forwards each to the
+OKX `DexRouter` — after approving `DexTokenApprove`, the two-contract pattern OKX
 requires, where approving the router directly silently fails.
 
-The adapter treats that calldata as **untrusted**. It measures its own balance before and
-after each call and enforces `minAmountOut` against the difference, never against anything
-the blob claims. Calldata that diverts the output elsewhere yields a measured fill of zero
-and reverts the whole transaction. Unspent input is refunded in the same call, so the
-adapter never holds a balance between swaps.
+**The adapter never trusts that calldata.** It measures its own balance before and
+after each call and enforces `minAmountOut` against the difference, never against
+anything the blob claims. Calldata that diverts the output elsewhere yields a measured
+fill of zero and reverts the whole transaction — `test_RevertWhen_CalldataDivertsTheOutput`
+proves it. Unspent input is refunded in the same call.
 
 | OKX contract | Address on X Layer |
 | --- | --- |
@@ -210,89 +79,135 @@ adapter never holds a balance between swaps.
 
 ### Builder Code
 
-Transactions are attributed with the X Layer Builder Code **`3dwgfzivgeb4b9yg`**,
-minted from the [OKX developer portal](https://web3.okx.com/onchainos/dev-portal)
-against the registry at
-[`0xd6c426f9…0510823b`](https://www.oklink.com/xlayer/address/0xd6c426f9c077358735622ae5a83468dc0510823b).
-
-Attribution uses the [ERC-8021](https://eip.tools/eip/8021) data suffix, built by
-`ox` and set as `dataSuffix` on the viem wallet client. Every transaction that
-client sends carries it — the ERC-20 approval as well as the mint — rather than
-only the calls that remembered to add it. The suffix is 34 bytes:
+Every transaction the app sends carries the X Layer Builder Code **`3dwgfzivgeb4b9yg`**,
+minted from the [OKX developer portal](https://web3.okx.com/onchainos/dev-portal). The
+[ERC-8021](https://eip.tools/eip/8021) suffix is built by `ox` and set as `dataSuffix`
+on the viem wallet client, so it rides on *every* call — approvals included — rather
+than only the ones that remembered to add it:
 
 ```
 3dwgfzivgeb4b9yg  10  00  80218021802180218021802180218021
 └ code, 16 bytes  │   │   └ ERC-8021 marker, 16 bytes
                   │   └ schema id
-                  └ code length
+                  └ code length                    = 34 bytes
 ```
 
-Contracts need no changes: the decoder ignores trailing calldata, which
-`test_MintAcceptsTrailingBuilderCodeCalldata` proves against the real `mint`
-selector. Cost is 16 gas per non-zero byte.
+Contracts need no changes — the decoder ignores trailing calldata, proven against the
+real `mint` selector by `test_MintAcceptsTrailingBuilderCodeCalldata`.
 
-Verify attribution on any transaction with the
-[Builder Code checker](https://builder-code.vercel.app/checker), or read it beside
-the txn hash on OKLink.
+---
 
-## Live app
+## The agent
 
-**[thesis-xlayer.vercel.app](https://thesis-xlayer.vercel.app)** — deployed on Vercel
-from this repository, served from Singapore (`sin1`). The web app is a read-and-sign client: it
-holds **no private key**, and signing always happens in the visitor's wallet.
+### Deep research
 
-### Deploying
+Type a theme and the agent **searches the open web** before choosing anything, in two
+deliberately separate passes:
 
-Vercel builds the whole workspace from the repository root, so `@thesis/shared` is
-resolved the same way it is locally. Security and cache headers live in
-`web/next.config.mjs`, because Vercel ignores `headers` from `vercel.json` on
-Next.js projects.
+1. **Search** — a model with web search reads current coverage and writes a briefing,
+   keeping every page it cites.
+2. **Select** — a second pass turns that briefing into constituents, constrained to the
+   639 equities that actually exist on X Layer, with one reason per holding.
+
+Splitting them matters. Research is open-ended; selection is not. The second pass only
+ever sees the real catalogue and unknown tickers are discarded — **a basket is
+immutable once deployed, so a single hallucinated ticker would be permanently
+unmintable.** The UI shows the outlook, the risks, the reason behind each holding and
+every source, so the reasoning can be checked rather than trusted.
 
 ```bash
-vercel link          # once, to attach the project
-vercel --prod        # deploy
+pnpm --filter @thesis/agent research "nuclear power and grid modernisation"
+#  → NEEx, DUKx, EXCx, PWRx, GEVx   (7 sources cited)
 ```
 
-Environment variables to set in the Vercel project:
+### Rebalancing
 
-| Variable | Why |
+Equal weight is a statement about *value*, so a basket drifts as its holdings move.
+The planner prices every constituent from executable OKX routes, computes drift against
+the target, pairs the most overweight against the most underweight, and returns
+ready-to-sign legs. Below 25 bps it declines to trade, because the spread would cost
+more than the correction is worth.
+
+The agent submits the plan; the contract enforces its own invariants regardless — only
+the agent may call it, every leg must carry a floor price, and the basket must end
+holding no quote token. **A rebalance can trade badly. It can never move value out.**
+
+---
+
+## Guarantees
+
+| | |
 | --- | --- |
-| `OKX_API_KEY` | Signs quote requests to Onchain OS Trade |
-| `OKX_API_SECRET` | Same |
-| `OKX_API_PASSPHRASE` | Same |
-| `NEXT_PUBLIC_BUILDER_CODE` | ERC-8021 attribution, public by design |
-| `XLAYER_RPC_URL` | Optional. Defaults to `https://rpc.xlayer.tech` |
+| **Fully backed** | Every share is a claim on real tokenized equities held by the contract. Nothing synthetic, no leverage, no oracle |
+| **No owner** | No pause switch, no upgrade path, no admin key. The creator of a basket gains no power over it |
+| **Redeemable** | Burn shares, receive the underlying pro rata. Needs no price and no venue, so it cannot fail on slippage or a missing route |
+| **Value cannot leak** | The trade adapter verifies every fill by balance delta; the rebalance must end with no quote token; the zap returns anything unsold in kind |
 
-**Never set `DEPLOYER_PRIVATE_KEY` on Vercel.** Nothing server-side signs a
-transaction: quotes are fetched with the OKX credentials, chain reads are public,
-and every write is signed by the visitor's own wallet.
+The share maths is oracle-free. The first mint prices one share per whole quote token;
+every later mint prices off the **scarcest leg actually received**, so a bad fill
+dilutes the minter and never the existing holders —
+`test_MintAfterAppreciationGivesFewerShares` pins this down.
 
-## Development
+---
+
+## Repository
+
+| Path | Contents |
+| --- | --- |
+| `contracts/` | Foundry — 5 contracts, 661 lines of Solidity, **73 tests** |
+| `shared/` | ABIs, addresses, the OKX client, the AI agent, the 639-equity catalogue |
+| `agent/` | CLI — `mint`, `resolve`, `research` |
+| `web/` | Next.js app on Vercel |
+
+### Contracts
+
+- **`ThesisBasket`** — ERC-20 for one basket. Mint, redeem in kind, agent rebalance
+- **`ThesisFactory`** — permissionless deployment and registry. Holds no funds, has no owner
+- **`OkxTradeRouter`** — adapter to Onchain OS Trade. Stateless, verifies every fill
+- **`ThesisZap`** — sells a whole position back to USD₮0 in one transaction
+- **`ITradeRouter`** — the seam between baskets and the venue
+
+### Development
 
 Requirements: Node 20+, pnpm 8+, Foundry.
 
 ```bash
 pnpm install
-cp .env.example .env   # fill in locally; never commit
-pnpm check             # forge build + forge test + typecheck
+cp .env.example .env     # fill in locally; never commit
+pnpm check               # forge build + 73 tests + typecheck across every package
 ```
 
-| Command                | Does                                  |
-| ---------------------- | ------------------------------------- |
-| `pnpm build:contracts` | `forge build`                         |
-| `pnpm test:contracts`  | `forge test`                          |
-| `pnpm typecheck`       | TypeScript across every workspace     |
-| `pnpm --filter @thesis/web dev`   | Run the web app            |
-| `pnpm --filter @thesis/agent dev` | Run the agent worker       |
+| Command | Does |
+| --- | --- |
+| `pnpm check` | Everything: contracts, tests, types |
+| `pnpm --filter @thesis/web dev` | Run the web app |
+| `pnpm --filter @thesis/agent research "<theme>"` | Deep research from the terminal |
+| `pnpm --filter @thesis/agent mint --amount=2` | Dry-run a mint (add `--send` to submit) |
+
+### Deploying
+
+```bash
+forge script contracts/script/DeployThesis.s.sol --root contracts \
+  --rpc-url https://rpc.xlayer.tech --account <keystore> --broadcast
+```
+
+Every address is read from the environment — nothing is hardcoded, because a wrong
+constituent baked into a script is a wrong basket on mainnet. The script writes
+`deployments/<chainId>.json`, which the app reads at runtime.
+
+The web app is a read-and-sign client: it holds **no private key**, and every
+transaction is signed in the visitor's own wallet.
+
+---
 
 ## Network
 
-| | X Layer mainnet | X Layer testnet |
-| --- | --- | --- |
-| Chain ID | 196 | 195 |
-| RPC | `https://rpc.xlayer.tech` | `https://testrpc.xlayer.tech` |
-| Gas token | OKB | OKB |
-| Explorer | [OKLink](https://www.oklink.com/xlayer) | [OKLink](https://www.oklink.com/xlayer-test) |
+| | X Layer mainnet |
+| --- | --- |
+| Chain ID | 196 |
+| RPC | `https://rpc.xlayer.tech` |
+| Gas token | OKB (a full deployment cost 0.000114 OKB) |
+| Explorer | [OKLink](https://www.oklink.com/xlayer) |
 
 ## License
 
