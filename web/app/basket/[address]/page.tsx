@@ -1,3 +1,4 @@
+import type {Metadata} from "next";
 import Link from "next/link";
 import {formatUnits} from "viem";
 import {erc20Abi, thesisBasketAbi} from "@thesis/shared";
@@ -5,8 +6,47 @@ import type {LiveBasket} from "../../api/basket/route";
 import {deployment, explorer, publicClient} from "../../chain";
 import {Reveal} from "../../motion";
 import LiveBasketView from "./LiveBasketView";
+import ShareButton from "./ShareButton";
 
 export const revalidate = 10;
+
+/**
+ * Per-basket metadata so a shared link describes the actual theme.
+ *
+ * Paired with `opengraph-image.tsx`, pasting a basket anywhere unfurls with its
+ * live holdings — the creator's pitch travels with the link.
+ */
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{address: string}>;
+}): Promise<Metadata> {
+  const {address} = await params;
+  try {
+    const [name, theme, symbol] = await Promise.all([
+      publicClient.readContract({
+        address: address as `0x${string}`,
+        abi: thesisBasketAbi,
+        functionName: "name"
+      }),
+      publicClient.readContract({
+        address: address as `0x${string}`,
+        abi: thesisBasketAbi,
+        functionName: "theme"
+      }),
+      publicClient.readContract({
+        address: address as `0x${string}`,
+        abi: thesisBasketAbi,
+        functionName: "symbol"
+      })
+    ]);
+    const title = `${name} · ${symbol} — Thesis`;
+    const description = `"${theme}" — a fully backed basket of tokenized equities on X Layer, mintable in one transaction.`;
+    return {title, description, openGraph: {title, description, type: "website"}};
+  } catch {
+    return {title: "Basket — Thesis"};
+  }
+}
 
 export default async function BasketPage({params}: {params: Promise<{address: string}>}) {
   const {address} = await params;
@@ -73,6 +113,10 @@ export default async function BasketPage({params}: {params: Promise<{address: st
             </Link>
             <h1 style={{fontSize: "clamp(1.9rem, 5vw, 2.7rem)", maxWidth: "20ch"}}>{name}</h1>
             <p>&ldquo;{theme}&rdquo;</p>
+            <div className="controls" style={{marginTop: 18}}>
+              <ShareButton name={name} theme={theme} />
+              <span className="avail">Anyone with the link can mint it</span>
+            </div>
           </Reveal>
         </section>
 

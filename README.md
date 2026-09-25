@@ -69,6 +69,17 @@ The basket now holds real equities, redeemable in kind at any time:
 Shares were minted at exactly `minSharesOut`, so nothing was lost to slippage on
 the way in.
 
+### Shareable baskets
+
+Every basket has its own metadata and a **generated social card** rendered per
+request from chain state — name, theme, constituents, weight and share count. Paste a
+basket link into a chat or a timeline and it unfurls with the live basket rather than
+a generic logo, so the creator's pitch travels with the link.
+
+That is the growth loop: a basket is worth deploying only if other people can find it,
+and anyone with the link can mint it. A **Share** button on each basket copies the
+link, using the native share sheet where one exists.
+
 ### Deep research
 
 `POST /api/research` searches the open web before choosing anything. It runs in two
