@@ -223,14 +223,23 @@ export default function ActionPanel(props: Props) {
     const shares = parseUnits(amount, 18);
     if (shares <= 0n) throw new Error("Enter an amount above zero.");
 
-    // Quote each constituent for the amount this redemption will release.
-    const legs = props.holdings.map((holding) => ({
-      token: holding.address,
-      amount: parseUnits(
+    /*
+     * Quote slightly less than the redemption is expected to release.
+     *
+     * The zap sells whatever `redeem` actually returns, while the venue calldata
+     * encodes a fixed amount. If the quote asked for more than the redemption
+     * produced — float rounding here, or anyone minting between the quote and the
+     * transaction — the swap cannot pull enough and the whole sale reverts.
+     * Under-quoting is safe: the zap returns the remainder in kind.
+     */
+    const SAFETY_BPS = 9970n; // 99.70%
+    const legs = props.holdings.map((holding) => {
+      const estimate = parseUnits(
         (Number(holding.perShare) * Number(amount)).toFixed(18),
         18
-      ).toString()
-    }));
+      );
+      return {token: holding.address, amount: ((estimate * SAFETY_BPS) / 10_000n).toString()};
+    });
 
     setPhase("quoting");
     const response = await fetch("/api/quote", {
@@ -238,8 +247,15 @@ export default function ActionPanel(props: Props) {
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({legs, direction: "sell"})
     });
-    const body = (await response.json()) as {quotes?: Array<{data: `0x${string}`}>; error?: string};
+    const body = (await response.json()) as {
+      quotes?: Array<{data: `0x${string}`; expectedOut: string}>;
+      error?: string;
+    };
     if (!response.ok || !body.quotes) throw new Error(body.error ?? "Could not price the sale.");
+
+    // A floor across the whole sale, so a bad fill reverts instead of settling.
+    const expected = body.quotes.reduce((sum, q) => sum + BigInt(q.expectedOut), 0n);
+    const minQuoteOut = (expected * 9700n) / 10_000n; // accept 3% below the quote
 
     setPhase("approving");
     await client!.writeContract({
@@ -255,7 +271,7 @@ export default function ActionPanel(props: Props) {
     const data = encodeFunctionData({
       abi: thesisZapAbi,
       functionName: "sellForQuote",
-      args: [props.basket, shares, body.quotes.map((q) => q.data), 0n]
+      args: [props.basket, shares, body.quotes.map((q) => q.data), minQuoteOut]
     });
     setTxHash(await client!.sendTransaction({account: account!, chain: null, to: ZAP, data}));
   }

@@ -88,29 +88,45 @@ export async function POST(request: Request) {
       });
     }
 
-    // Pair the most overweight against the most underweight, largest first.
+    /*
+     * Pair the most overweight against the most underweight, largest first.
+     *
+     * `filled` tracks how much of each shortfall has already been bought. Without
+     * it, a shortfall that takes two sellers to cover is counted twice and the
+     * second seller buys the whole deficit again.
+     */
     const legs: Leg[] = [];
-    const sells: Array<{token: `0x${string}`; usd: number; price: number}> = [];
+    const filled = new Array<number>(underweight.length).fill(0);
     let ui = 0;
+
     for (const over of overweight) {
       let surplus = over.value - target;
+      // Never plan to sell more of a token than the basket actually holds.
+      let sellable = over.amount;
+
       while (surplus > 0.01 && ui < underweight.length) {
         const under = underweight[ui]!;
-        const need = target - under.value - (sells.find((s) => s.token === under.token)?.usd ?? 0);
+        const need = target - under.value - filled[ui]!;
         if (need <= 0.01) {
           ui += 1;
           continue;
         }
+
         const usd = Math.min(surplus, need);
-        sells.push({token: over.token, usd, price: over.price});
+        const tokens = Math.min(usd / over.price, sellable);
+        if (tokens <= 0) break;
+
         legs.push({
           tokenIn: over.token,
           tokenOut: under.token,
-          amountIn: parseUnits((usd / over.price).toFixed(18), 18).toString(),
+          amountIn: parseUnits(tokens.toFixed(18), 18).toString(),
           minAmountOut: "1",
           swapData: "0x"
         });
+
+        filled[ui] = filled[ui]! + usd;
         surplus -= usd;
+        sellable -= tokens;
         if (usd >= need - 0.01) ui += 1;
       }
     }
