@@ -32,7 +32,7 @@ export default function YourPosition({
   refreshKey: string;
 }) {
   const {account} = useWallet();
-  const {prices, ready: pricesReady} = usePrices();
+  const {prices, ready: pricesReady} = usePrices(holdings.map((h) => h.address));
   const [shares, setShares] = useState<string | null>(null);
 
   const read = useCallback(async () => {

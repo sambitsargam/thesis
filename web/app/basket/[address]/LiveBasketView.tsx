@@ -22,7 +22,9 @@ interface Props {
 
 export default function LiveBasketView(props: Props) {
   const {data, pulse, refresh} = useLiveBasket(props.basket, props.initial);
-  const {prices, ready: pricesReady} = usePrices();
+  const {prices, ready: pricesReady} = usePrices(
+    props.initial.holdings.map((h) => h.address)
+  );
   const [justMinted, setJustMinted] = useState(false);
 
   const supply = Number(data.supply);

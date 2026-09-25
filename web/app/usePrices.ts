@@ -11,7 +11,10 @@ export type Prices = Record<string, number>;
  * hard buys nothing. Returns an empty map until loaded, and callers hide USD
  * figures rather than showing a zero that looks like a real number.
  */
-export function usePrices(intervalMs = 60_000): {prices: Prices; ready: boolean} {
+export function usePrices(
+  tokens?: string[],
+  intervalMs = 60_000
+): {prices: Prices; ready: boolean} {
   const [prices, setPrices] = useState<Prices>({});
   const [ready, setReady] = useState(false);
 
@@ -20,7 +23,8 @@ export function usePrices(intervalMs = 60_000): {prices: Prices; ready: boolean}
 
     const read = async () => {
       try {
-        const response = await fetch("/api/prices");
+        const query = tokens && tokens.length > 0 ? `?tokens=${tokens.join(",")}` : "";
+        const response = await fetch(`/api/prices${query}`);
         if (!response.ok) return;
         const body = (await response.json()) as {prices?: Prices};
         if (!cancelled && body.prices) {
@@ -38,7 +42,8 @@ export function usePrices(intervalMs = 60_000): {prices: Prices; ready: boolean}
       cancelled = true;
       clearInterval(timer);
     };
-  }, [intervalMs]);
+    // Joined so a new array identity with the same tokens does not re-subscribe.
+  }, [tokens?.join(","), intervalMs]);
 
   return {prices, ready};
 }

@@ -953,3 +953,86 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .briefing-full { margin-top: 12px; font-size: 0.9rem; color: var(--ink-dim); white-space: pre-wrap; }
 
 .disclaimer { margin: 18px 0 0; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--line-soft); padding-top: 12px; }
+
+/* ============================================================ market strip */
+
+.strip {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.strip-item {
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  gap: 14px;
+  align-items: baseline;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.strip-ticker { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 620; font-size: 0.86rem; color: var(--accent); }
+.strip-name { color: var(--ink-dim); font-size: 0.92rem; }
+.strip-price { font-weight: 620; letter-spacing: -0.02em; }
+.strip-note { padding: 11px 18px; color: var(--muted); font-size: 0.78rem; background: var(--surface-2); }
+
+/* ================================================================== pillars */
+
+.pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+
+.pillar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.pillar h3 { margin: 0 0 7px; font-size: 1rem; letter-spacing: -0.02em; font-weight: 640; }
+.pillar p { margin: 0; color: var(--ink-dim); font-size: 0.92rem; }
+.pillar .num {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-bottom: 12px;
+}
+
+/* ===================================================================== flow */
+
+.flow { display: grid; gap: 1px; background: var(--line-soft); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+
+.flow-step { background: var(--surface); padding: 16px 20px; display: grid; grid-template-columns: 30px 1fr; gap: 14px; align-items: start; }
+.flow-num {
+  width: 24px; height: 24px; border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  display: grid; place-items: center;
+  font-size: 0.76rem; font-weight: 680;
+}
+.flow-title { font-weight: 600; }
+.flow-body { color: var(--ink-dim); font-size: 0.92rem; margin-top: 2px; }
+
+/* ====================================================================== cta */
+
+.cta {
+  margin-top: 64px;
+  padding: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  text-align: center;
+}
+.cta h2 { font-size: 1.5rem; letter-spacing: -0.03em; margin: 0 0 8px; text-transform: none; color: var(--ink); font-weight: 680; }
+.cta p { color: var(--ink-dim); margin: 0 auto 20px; max-width: 46ch; }
+
+.cta-button {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 10px;
+  padding: 13px 24px;
+  font-weight: 600;
+}
+.cta-button:hover { opacity: 0.88; }
