@@ -17,6 +17,7 @@ interface Props {
   constituents: readonly `0x${string}`[];
   initial: LiveBasket;
   agent: `0x${string}`;
+  zap?: `0x${string}`;
   explorerBase: string;
 }
 
@@ -85,6 +86,7 @@ export default function LiveBasketView(props: Props) {
           quoteToken={props.quoteToken}
           constituents={props.constituents}
           holdings={data.holdings}
+          zap={props.zap}
           supplyIsZero={supply === 0}
           onChanged={() => {
             setJustMinted(true);

@@ -26,10 +26,14 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({children}: {children: ReactNode}) {
+  // Read on the server at request time. A NEXT_PUBLIC_ variable is inlined at build
+  // time instead, which silently does nothing if it is set after the last deploy.
+  const builderCode = process.env.BUILDER_CODE ?? process.env.NEXT_PUBLIC_BUILDER_CODE;
+
   return (
     <html lang="en">
       <body>
-        <WalletProvider>
+        <WalletProvider builderCode={builderCode}>
           <div className="aurora" aria-hidden="true" />
           <SiteNav />
           {children}

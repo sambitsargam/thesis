@@ -19,6 +19,7 @@ interface Props {
   quoteToken: `0x${string}`;
   constituents: readonly `0x${string}`[];
   holdings: Holding[];
+  zap?: `0x${string}`;
   supplyIsZero: boolean;
   onChanged?: () => void;
 }
@@ -43,7 +44,7 @@ const SELL_STEPS = [
   {key: "sending" as const, label: "Burning shares and selling the underlying"}
 ];
 
-const ZAP = process.env.NEXT_PUBLIC_ZAP_ADDRESS as `0x${string}` | undefined;
+
 
 export default function ActionPanel(props: Props) {
   const {account, client, wallet, discover} = useWallet();
@@ -86,6 +87,7 @@ export default function ActionPanel(props: Props) {
     if (!account) setBalances(null);
   }, [account]);
 
+  const ZAP = props.zap;
   const sellsForCash = mode === "redeem" && payout === "quote" && Boolean(ZAP);
   const busy = phase === "quoting" || phase === "approving" || phase === "sending";
   const steps = mode === "mint" ? MINT_STEPS : sellsForCash ? SELL_STEPS : REDEEM_STEPS;

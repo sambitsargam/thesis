@@ -28,10 +28,6 @@ interface WalletState {
 
 const WalletContext = createContext<WalletState | null>(null);
 
-// One suffix for the whole app: set on the client, so every transaction it sends
-// carries attribution — approvals included — with no per-call bookkeeping.
-const DATA_SUFFIX = builderCodeSuffix(process.env.NEXT_PUBLIC_BUILDER_CODE);
-
 declare global {
   interface Window {
     ethereum?: Eip1193Provider;
@@ -41,7 +37,16 @@ declare global {
   }
 }
 
-export function WalletProvider({children}: {children: ReactNode}) {
+export function WalletProvider({
+  children,
+  builderCode
+}: {
+  children: ReactNode;
+  builderCode?: string;
+}) {
+  // One suffix for the whole app: set on the client, so every transaction it sends
+  // carries attribution — approvals included — with no per-call bookkeeping.
+  const DATA_SUFFIX = useMemo(() => builderCodeSuffix(builderCode), [builderCode]);
   const [wallet, setWallet] = useState<DetectedWallet | null>(null);
   const [account, setAccount] = useState<`0x${string}` | null>(null);
   const [wallets, setWallets] = useState<DetectedWallet[] | null>(null);

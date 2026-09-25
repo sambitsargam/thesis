@@ -72,6 +72,9 @@ export default async function BasketPage({params}: {params: Promise<{address: st
         </section>
 
         <LiveBasketView
+          zap={(process.env.ZAP_ADDRESS ?? process.env.NEXT_PUBLIC_ZAP_ADDRESS) as
+            | `0x${string}`
+            | undefined}
           basket={basket}
           symbol={symbol}
           quoteToken={deployment.quoteToken}
