@@ -2,6 +2,7 @@
 
 import {useRouter} from "next/navigation";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {type Briefing, BriefingCard, ResearchProgress} from "./Research";
 import {decodeEventLog} from "viem";
 import {thesisFactoryAbi, type TokenizedEquity, XSTOCKS} from "@thesis/shared";
 import {useWallet} from "../WalletProvider";
@@ -35,6 +36,8 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
   const [resolving, setResolving] = useState(false);
   const [rationale, setRationale] = useState("");
   const [model, setModel] = useState("");
+  const [researching, setResearching] = useState(false);
+  const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<{hash: string; basket?: string} | null>(null);
 
@@ -115,6 +118,56 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
       setError(err instanceof Error ? err.message : "Could not resolve the theme.");
     } finally {
       setResolving(false);
+    }
+  }
+
+  /**
+   * Searches the web, then builds the basket from what it found.
+   *
+   * Selection is still constrained to the real catalogue server-side, so research
+   * can inform the picks but cannot conjure a token that does not exist.
+   */
+  async function runDeepResearch() {
+    if (!theme.trim()) {
+      setError("Describe the theme first.");
+      return;
+    }
+    setResearching(true);
+    setError("");
+    setBriefing(null);
+    setRationale("");
+    try {
+      const response = await fetch("/api/research", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({theme})
+      });
+      const body = (await response.json()) as Briefing & {error?: string};
+      if (!response.ok || !body.picks) throw new Error(body.error ?? "Research failed.");
+
+      for (const pick of body.picks) {
+        known.current.set(pick.address, {
+          ticker: pick.ticker,
+          name: pick.name,
+          address: pick.address,
+          wrapped: false
+        });
+      }
+      setBriefing(body);
+      setPicked(body.picks.map((p) => p.address));
+      setResults(body.picks.map((p) => ({
+        ticker: p.ticker,
+        name: p.name,
+        address: p.address,
+        wrapped: false
+      })));
+      setQuery("");
+      setSymbol(body.symbol);
+      setModel(`${body.models.search} + ${body.models.select}`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Research failed.");
+    } finally {
+      setResearching(false);
     }
   }
 
@@ -212,11 +265,21 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
         </div>
 
         <div className="controls" style={{marginTop: 12}}>
-          <button onClick={resolveWithAi} disabled={resolving || !theme.trim()}>
-            {resolving ? "Choosing equities…" : "Pick equities with AI"}
+          <button onClick={runDeepResearch} disabled={researching || resolving || !theme.trim()}>
+            {researching ? "Researching…" : "Deep research"}
+          </button>
+          <button
+            className="ghost"
+            onClick={resolveWithAi}
+            disabled={resolving || researching || !theme.trim()}
+          >
+            {resolving ? "Choosing…" : "Quick pick"}
           </button>
           <span className="avail">or start from a preset</span>
         </div>
+
+        {researching && <ResearchProgress />}
+        {briefing && <BriefingCard data={briefing} />}
 
         {rationale && (
           <div className="rationale">

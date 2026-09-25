@@ -69,6 +69,33 @@ The basket now holds real equities, redeemable in kind at any time:
 Shares were minted at exactly `minSharesOut`, so nothing was lost to slippage on
 the way in.
 
+### Deep research
+
+`POST /api/research` searches the open web before choosing anything. It runs in two
+passes, deliberately separated:
+
+1. **Search.** A model with web search reads current coverage of the theme and writes
+   a briefing, keeping every page it cites.
+2. **Select.** A second pass turns that briefing into constituents, constrained to the
+   639 equities that actually exist on X Layer, with one reason per holding.
+
+Splitting them matters: research is open-ended, selection is not. The second pass only
+ever sees the real catalogue, and unknown tickers are dropped — a basket is immutable
+once deployed, so a hallucinated ticker would be permanently unmintable.
+
+The UI shows the outlook, the risks, the reason behind each holding, and every source,
+so a reader can check the reasoning instead of trusting it. Output is a research
+summary from public sources, not investment advice, and says so.
+
+```
+"nuclear power and grid modernisation"
+  -> NEEx, DUKx, EXCx, PWRx, GEVx   (7 sources cited)
+"AI infrastructure buildout"
+  -> NVDAx, AMDx, MSFTx, GOOGLx, AMZNx, TSMx, PLTRx
+```
+
+Also available as `pnpm --filter @thesis/agent research "your theme"`.
+
 ### Resolving a theme with AI
 
 `POST /api/resolve` turns plain language into constituents. The model is handed the

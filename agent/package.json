@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "mint": "node --env-file=../.env --import tsx src/mint.ts",
-    "resolve": "node --env-file=../.env --import tsx src/resolve.ts"
+    "resolve": "node --env-file=../.env --import tsx src/resolve.ts",
+    "research": "node --env-file=../.env --import tsx src/research.ts"
   },
   "dependencies": {
     "@thesis/shared": "workspace:*",

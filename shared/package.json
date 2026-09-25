@@ -10,7 +10,8 @@
     ".": "./src/index.ts",
     "./okx": "./src/okx.ts",
     "./catalog": "./src/catalog.ts",
-    "./ai": "./src/ai.ts"
+    "./ai": "./src/ai.ts",
+    "./research": "./src/research.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

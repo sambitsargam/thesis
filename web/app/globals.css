@@ -923,3 +923,33 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   font-size: 0.72rem;
   color: var(--muted);
 }
+
+/* ================================================================= research */
+
+.research-progress { display: grid; gap: 2px; margin-top: 16px; }
+
+.briefing {
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.briefing-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.briefing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 18px; }
+.briefing-text { margin: 4px 0 0; font-size: 0.92rem; color: var(--ink-dim); }
+
+.why { display: grid; gap: 8px; margin-top: 8px; }
+.why-row { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; }
+.why-ticker { font-weight: 620; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86rem; color: var(--accent); }
+.why-reason { color: var(--ink-dim); font-size: 0.9rem; }
+
+.sources { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.sources a { color: var(--ink-dim); font-size: 0.88rem; border-bottom: 1px solid var(--line); }
+.sources a:hover { color: var(--accent); border-color: var(--accent-dim); }
+
+.briefing-full { margin-top: 12px; font-size: 0.9rem; color: var(--ink-dim); white-space: pre-wrap; }
+
+.disclaimer { margin: 18px 0 0; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--line-soft); padding-top: 12px; }
