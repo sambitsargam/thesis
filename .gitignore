@@ -28,6 +28,9 @@ dist/
 npm-debug.log*
 pnpm-debug.log*
 
+# local editor and agent tooling
+.claude/
+
 # os
 .DS_Store
 contracts/deployments/31337.json
