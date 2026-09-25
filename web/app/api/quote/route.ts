@@ -7,10 +7,11 @@ export const dynamic = "force-dynamic";
 
 const CHAIN_ID = 196;
 
-// The zap holds constituents mid-sale, so sell fills must land there.
-const zap = (process.env.ZAP_ADDRESS ?? process.env.NEXT_PUBLIC_ZAP_ADDRESS) as
-  | `0x${string}`
-  | undefined;
+// The zap holds constituents mid-sale, so sell fills must land there. Recorded in
+// deployments.ts by the deploy script; env only overrides it.
+const zap = ((process.env.ZAP_ADDRESS ??
+  process.env.NEXT_PUBLIC_ZAP_ADDRESS ??
+  deploymentFor(CHAIN_ID).zap) || undefined) as `0x${string}` | undefined;
 
 /**
  * Server-side proxy for OKX swap quotes.

@@ -22,6 +22,11 @@ export default async function BasketPage({params}: {params: Promise<{address: st
     publicClient.getBlockNumber()
   ]);
 
+  // Recorded in deployments.ts by the deploy script; env only overrides it.
+  const zapAddress = ((process.env.ZAP_ADDRESS ??
+    process.env.NEXT_PUBLIC_ZAP_ADDRESS ??
+    deployment.zap) || undefined) as `0x${string}` | undefined;
+
   const agent = await publicClient.readContract({
     address: basket,
     abi: thesisBasketAbi,
@@ -72,9 +77,7 @@ export default async function BasketPage({params}: {params: Promise<{address: st
         </section>
 
         <LiveBasketView
-          zap={(process.env.ZAP_ADDRESS ?? process.env.NEXT_PUBLIC_ZAP_ADDRESS) as
-            | `0x${string}`
-            | undefined}
+          zap={zapAddress}
           basket={basket}
           symbol={symbol}
           quoteToken={deployment.quoteToken}
