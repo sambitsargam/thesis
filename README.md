@@ -45,7 +45,7 @@ problem is real. On-chain it should be one click.
 | Contract | Address | |
 | --- | --- | --- |
 | `ThesisFactory` (V1, as submitted) | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
-| `ThesisFactory` (V2, creator fee) | `0x9E259699d4CA4F03BdB291F51D0116cfc66E6d56` | [OKLink](https://www.oklink.com/xlayer/address/0x9E259699d4CA4F03BdB291F51D0116cfc66E6d56) |
+| `ThesisFactory` (V2, creator fee) | `0xDC9C28B6B806224AadCd5B11010f2558C279bC70` | [OKLink](https://www.oklink.com/xlayer/address/0xDC9C28B6B806224AadCd5B11010f2558C279bC70) |
 | `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
 | `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
 | `THESIS-TECH` (demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
@@ -121,6 +121,18 @@ units, at a stated block, with the command to re-read them yourself.
 ```
 cast call <xStock> "balanceOf(address)(uint256)" <basket> --rpc-url https://rpc.xlayer.tech
 ```
+
+### Market hours, stated plainly
+
+A basket mints at any hour, because xStocks are ERC-20s and X Layer does not close. The
+equities behind them do close, and pricing outside the session is worse — so the buy panel
+carries a live **US market session badge**: open, pre-market, after hours, weekend, or
+holiday, with one sentence on what it means for the mint.
+
+It is computed from the clock in `America/New_York`, not from a feed, and includes the
+full-day exchange holidays — the fixed dates with their weekend observance rules, the
+floating Mondays, Thanksgiving, and Good Friday by computus. Early closes are not modelled,
+which the source says out loud. Nothing is blocked: the badge informs, it does not gate.
 
 ### Fork anything
 

@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {encodeFunctionData, formatUnits, parseUnits} from "viem";
 import {erc20Abi, legAmounts, splitFee, thesisBasketAbi, thesisZapAbi} from "@thesis/shared";
+import SessionBadge from "../../SessionBadge";
 import {useWallet} from "../../WalletProvider";
 
 const QUOTE_DECIMALS = 6;
@@ -345,6 +346,8 @@ export default function ActionPanel(props: Props) {
               ? "Burn shares, sell every constituent at market, and take USD₮0 out — in one transaction."
               : "Burn shares and take the underlying equities out, pro rata. No price needed, no slippage."}
         </p>
+
+        {mode === "mint" && <SessionBadge />}
 
         {mode === "redeem" && ZAP && (
           <div className="pills" style={{marginTop: 14}}>

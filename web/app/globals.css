@@ -1162,3 +1162,31 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   overflow-x: auto;
   white-space: pre;
 }
+
+/* ---------------------------------------------------------- market session */
+
+.session {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+}
+
+.session-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  align-self: center;
+}
+
+.session.live .session-dot { background: var(--accent); }
+.session-label { font-weight: 620; color: var(--ink); }
+.session.live .session-label { color: var(--accent); }
+.session-detail { flex: 1 1 200px; }

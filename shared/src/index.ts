@@ -14,4 +14,6 @@ export type {Deployment} from "./deployments";
 export {XSTOCKS, equityByAddress} from "./tokens";
 export type {TokenizedEquity} from "./tokens";
 export {splitFee, legAmounts, BPS, MAX_FEE_BPS} from "./fee";
+export {marketSession} from "./session";
+export type {MarketSession, SessionState} from "./session";
 export type {FeeSplit} from "./fee";

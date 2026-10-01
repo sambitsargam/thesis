@@ -21,7 +21,7 @@ export const DEPLOYMENTS: Record<number, Deployment> = {
   196: {
     chainId: 196,
     factory: "0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e",
-    factoryV2: "0x9E259699d4CA4F03BdB291F51D0116cfc66E6d56",
+    factoryV2: "0xDC9C28B6B806224AadCd5B11010f2558C279bC70",
     router: "0x2f0e2561283b0953B87C0069590DdE6fDD2766d9",
     quoteToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
     agent: "0xC026A091ce15C1958b91812e854266dcB3d4bAa0",
