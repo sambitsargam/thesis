@@ -11,6 +11,8 @@ export interface Deployment {
   quoteToken: Address;
   agent: Address;
   demoBasket: Address;
+  /** First basket launched from the V2 factory, carrying a creator fee and counters. */
+  demoBasketV2?: Address;
   /** Optional sell-to-quote helper; absent on deployments without it. */
   zap?: Address;
   okxDexRouter: Address;
@@ -26,6 +28,7 @@ export const DEPLOYMENTS: Record<number, Deployment> = {
     quoteToken: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
     agent: "0xC026A091ce15C1958b91812e854266dcB3d4bAa0",
     demoBasket: "0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB",
+    demoBasketV2: "0xbAF764B25dCA8780a596a00B92Ac6273C3eD7A12",
     zap: "0x42FF891cd488fAA984aad9c981aE0ADE792960A0",
     okxDexRouter: "0x7c5bEE2a8091C3ef39072f64F18Fac913060AEaF",
     okxTokenApprove: "0x8b773D83bc66Be128c60e07E17C8901f7a64F000"

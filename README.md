@@ -48,7 +48,8 @@ problem is real. On-chain it should be one click.
 | `ThesisFactory` (V2, creator fee) | `0xDC9C28B6B806224AadCd5B11010f2558C279bC70` | [OKLink](https://www.oklink.com/xlayer/address/0xDC9C28B6B806224AadCd5B11010f2558C279bC70) |
 | `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
 | `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
-| `THESIS-TECH` (demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
+| `THESIS-TECH` (V1 demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
+| `THESIS-AINF` (V2, 0.3% creator fee) | `0xbAF764B25dCA8780a596a00B92Ac6273C3eD7A12` | [OKLink](https://www.oklink.com/xlayer/address/0xbAF764B25dCA8780a596a00B92Ac6273C3eD7A12) |
 
 **Proof it works end to end** — mint transaction
 [`0x798d56e0…c4d52a43`](https://www.oklink.com/xlayer/tx/0x798d56e069a1b1893612d8d5282d59f7da01dc884c1ec4c54ed89874c4d52a43)
@@ -95,6 +96,28 @@ therefore only ever holds what `net` actually purchased, so every share stays fu
 and the scarcest-leg share maths is untouched — fewer tokens bought, proportionally fewer
 shares. A fee taken in shares would mint unbacked supply; a fee taken in constituents
 would perturb the holdings between mints. Neither is done here.
+
+**Proof the fee works** — mint transaction
+[`0x1a37ad39…bd064423`](https://www.oklink.com/xlayer/tx/0x1a37ad393dc345e9a3253a459374a0172476baead237fb7e4556c673bd064423)
+into `THESIS-AINF`, a basket with a 0.3% creator fee. 2.000000 USD₮0 in; the creator was
+paid 0.006000 and the remaining 1.994000 bought equities, split three ways as
+0.664666 / 0.664666 / 0.664668. The minter received **1.994** shares — priced off the net,
+not the gross — and the basket kept **zero** USD₮0, because every cent that was not the fee
+became NVDAx, AMDx and TSMx.
+
+Read back from the contract afterwards:
+
+| | |
+| --- | --- |
+| `totalQuoteIn` | `2000000` |
+| `mintCount` | `1` |
+| `totalCreatorFees` | `6000` |
+| `totalSupply` | `1994000000000000000` |
+| USD₮0 left in the basket | `0` |
+
+The `CreatorFeePaid` event in that receipt carries the same `6000`, and the creator's USD₮0
+balance moved by exactly that much. The cap is live too: asking the factory for 101 bps
+reverts with `FeeTooHigh(101, 100)`, which anyone can check with one `eth_call`.
 
 ### Ranked, and checkable
 

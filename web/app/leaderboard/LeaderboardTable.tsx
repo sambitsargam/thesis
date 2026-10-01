@@ -32,7 +32,13 @@ const SORTS: {key: SortKey; label: string}[] = [
 ];
 
 const usd = (n: number) =>
-  n >= 1000 ? `$${Math.round(n).toLocaleString("en-US")}` : `$${n.toFixed(2)}`;
+  n >= 1000
+    ? `$${Math.round(n).toLocaleString("en-US")}`
+    : // A first creator fee is fractions of a cent. Rounding it to $0.01 would overstate
+      // the one number a creator will check against their own wallet.
+      n > 0 && n < 0.01
+      ? `$${n.toFixed(4)}`
+      : `$${n.toFixed(2)}`;
 
 export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; explorerBase: string}) {
   const {account} = useWallet();
