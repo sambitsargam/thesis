@@ -133,6 +133,17 @@ export default async function BasketPage({params}: {params: Promise<{address: st
             </Link>
             <h1 style={{fontSize: "clamp(1.9rem, 5vw, 2.7rem)", maxWidth: "20ch"}}>{name}</h1>
             <p>&ldquo;{theme}&rdquo;</p>
+            {creator && (
+              <p className="byline">
+                Launched by{" "}
+                <a className="mono link" href={explorer(`address/${creator}`)}>
+                  {creator.slice(0, 6)}…{creator.slice(-4)}
+                </a>
+                {feeBps > 0n
+                  ? `, who earns ${Number(feeBps) / 100}% of every mint and controls nothing else.`
+                  : ", who charges nothing and controls nothing."}
+              </p>
+            )}
             <div className="controls" style={{marginTop: 18}}>
               <ShareButton name={name} theme={theme} />
               <Link className="chip" href={`/launch?from=${basket}`}>

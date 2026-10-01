@@ -1205,3 +1205,5 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .card-title .stretched { color: inherit; text-decoration: none; }
 .card-title .stretched::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }
 .card-actions { position: relative; z-index: 1; margin-top: 14px; display: flex; gap: 10px; }
+
+.byline { color: var(--ink-dim); font-size: 0.92rem; margin-top: 10px; }

@@ -38,6 +38,20 @@ export default async function LeaderboardPage() {
     tvlUsd: valuations.get(basket.address)?.tvlUsd ?? null
   }));
 
+  // Who is actually making money here — the most launchpad-shaped fact on the page.
+  const earnings = new Map<string, {earned: number; baskets: number}>();
+  for (const row of rows) {
+    const key = row.creator.toLowerCase();
+    const current = earnings.get(key) ?? {earned: 0, baskets: 0};
+    earnings.set(key, {
+      earned: current.earned + (row.creatorEarned ?? 0),
+      baskets: current.baskets + 1
+    });
+  }
+  const [topCreator] = [...earnings.entries()]
+    .filter(([, totals]) => totals.earned > 0)
+    .sort((a, b) => b[1].earned - a[1].earned);
+
   const priced = rows.filter((row) => row.tvlUsd !== null);
   const totalTvl = priced.reduce((sum, row) => sum + row.tvlUsd!, 0);
   const counted = rows.filter((row) => row.mints !== null);
@@ -80,6 +94,25 @@ export default async function LeaderboardPage() {
           </div>
         </dl>
       </section>
+
+      {topCreator && (
+        <section className="section" style={{marginTop: 8, marginBottom: 0}}>
+          <Reveal>
+            <div className="card">
+              <div className="row">
+                <span>Top creator</span>
+                <span>
+                  <a className="mono link" href={explorer(`address/${topCreator[0]}`)}>
+                    {topCreator[0].slice(0, 6)}…{topCreator[0].slice(-4)}
+                  </a>{" "}
+                  — ${topCreator[1].earned.toFixed(4)} earned across{" "}
+                  {topCreator[1].baskets} basket{topCreator[1].baskets === 1 ? "" : "s"}
+                </span>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+      )}
 
       <section className="section" style={{marginTop: 8}}>
         {rows.length === 0 ? (
