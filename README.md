@@ -96,6 +96,37 @@ and the scarcest-leg share maths is untouched — fewer tokens bought, proportio
 shares. A fee taken in shares would mint unbacked supply; a fee taken in constituents
 would perturb the holdings between mints. Neither is done here.
 
+### Ranked, and checkable
+
+[`/leaderboard`](https://thesisindex.vercel.app/leaderboard) ranks every basket from every
+factory by what it holds, what has been paid into it, how many times it has been minted and
+what its creator has earned.
+
+There is no indexer and no database behind it. X Layer's public RPCs cap `eth_getLogs` at
+**100 blocks**, so replaying a basket's history would take thousands of requests — instead
+each basket keeps its own lifetime totals on chain:
+
+| Field | Meaning |
+| --- | --- |
+| `totalQuoteIn` | Cumulative USD₮0 ever paid in, gross |
+| `mintCount` | Mints ever executed |
+| `totalCreatorFees` | Ever paid to the creator |
+
+`totalQuoteIn` and `mintCount` share a storage slot, so a zero-fee mint costs one extra
+write. Every figure the leaderboard shows is one `eth_call` away from being checked.
+
+Each basket page carries a **proof of reserve**: the contract's real token balances in base
+units, at a stated block, with the command to re-read them yourself.
+
+```
+cast call <xStock> "balanceOf(address)(uint256)" <basket> --rpc-url https://rpc.xlayer.tech
+```
+
+Because Thesis holds the actual equities, the balances *are* the proof — there is no
+published NAV to trust and no oracle in the path. That is also what makes a basket usable as
+collateral: it is a plain ERC-20 whose backing any lending market on X Layer can read
+directly, with no integration work on either side.
+
 ---
 
 ## How the OKX integration actually works

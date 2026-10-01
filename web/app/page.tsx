@@ -136,6 +136,9 @@ export default async function Home() {
       <section className="section">
         <div className="section-head">
           <h2>Baskets</h2>
+          <Link className="chip" href="/leaderboard">
+            Leaderboard →
+          </Link>
           <span className="note">
             Anyone can launch one.
             {deployment.factoryV2

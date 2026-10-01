@@ -1,11 +1,12 @@
 import type {Metadata} from "next";
 import Link from "next/link";
 import {formatUnits} from "viem";
-import {erc20Abi, thesisBasketAbi} from "@thesis/shared";
+import {erc20Abi, thesisBasketAbi, xLayer} from "@thesis/shared";
 import type {LiveBasket} from "../../api/basket/route";
 import {deployment, explorer, publicClient} from "../../chain";
 import {Reveal} from "../../motion";
 import LiveBasketView from "./LiveBasketView";
+import ProofOfReserve, {type Reserve} from "./ProofOfReserve";
 import ShareButton from "./ShareButton";
 
 export const revalidate = 10;
@@ -101,6 +102,7 @@ export default async function BasketPage({params}: {params: Promise<{address: st
       return {
         ticker,
         address: token,
+        raw: held.toString(),
         held: formatUnits(held, 18),
         perShare: formatUnits(units[i] ?? 0n, 18)
       };
@@ -109,9 +111,17 @@ export default async function BasketPage({params}: {params: Promise<{address: st
 
   const initial: LiveBasket = {
     supply: formatUnits(supply, 18),
-    holdings,
+    // `raw` is for the proof panel only; the live view works in whole tokens.
+    holdings: holdings.map(({raw: _raw, ...holding}) => holding),
     blockNumber: blockNumber.toString()
   };
+
+  const reserves: Reserve[] = holdings.map((holding) => ({
+    ticker: holding.ticker,
+    token: holding.address,
+    raw: holding.raw,
+    amount: holding.held
+  }));
 
   return (
     <>
@@ -169,29 +179,14 @@ export default async function BasketPage({params}: {params: Promise<{address: st
           </Reveal>
         </section>
 
-        <section className="section">
-          <div className="section-head">
-            <h2>Addresses</h2>
-          </div>
-          <Reveal>
-            <div className="card">
-              <div className="row">
-                <span>Basket</span>
-                <a className="mono link" href={explorer(`address/${basket}`)}>
-                  {basket}
-                </a>
-              </div>
-              {holdings.map((holding) => (
-                <div className="row" key={holding.address}>
-                  <span>{holding.ticker}</span>
-                  <a className="mono link" href={explorer(`address/${holding.address}`)}>
-                    {holding.address}
-                  </a>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </section>
+        <ProofOfReserve
+          basket={basket}
+          symbol={symbol}
+          reserves={reserves}
+          blockNumber={blockNumber.toString()}
+          rpcUrl={xLayer.rpcUrls.default.http[0]}
+          explorerBase={explorer("")}
+        />
 
         <p className="foot">
           Thesis · permissionless index launchpad for tokenized equities · OKX Dev Day 2026

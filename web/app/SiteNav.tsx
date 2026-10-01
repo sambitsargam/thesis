@@ -11,6 +11,9 @@ export default function SiteNav() {
           Thesis
         </Link>
         <div className="nav-right">
+          <Link className="chip board" href="/leaderboard">
+            Leaderboard
+          </Link>
           <Link className="chip" href="/launch">
             Launch a basket
           </Link>
