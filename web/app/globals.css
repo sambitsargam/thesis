@@ -1190,3 +1190,18 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .session-label { font-weight: 620; color: var(--ink); }
 .session.live .session-label { color: var(--accent); }
 .session-detail { flex: 1 1 200px; }
+
+.hero-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+/* A card that is mostly one big link, but still holds its own buttons. */
+.basket-card { position: relative; display: flex; flex-direction: column; }
+.basket-card:hover { border-color: var(--accent-dim); }
+.card-title .stretched { color: inherit; text-decoration: none; }
+.card-title .stretched::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }
+.card-actions { position: relative; z-index: 1; margin-top: 14px; display: flex; gap: 10px; }

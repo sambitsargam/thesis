@@ -1,9 +1,8 @@
 import Link from "next/link";
-import type {Address} from "viem";
 import {formatUnits} from "viem";
-import {erc20Abi, thesisBasketAbi, thesisFactoryAbi} from "@thesis/shared";
 import {XSTOCK_CATALOG} from "@thesis/shared/catalog";
-import {deployment, explorer, publicClient} from "./chain";
+import {loadBaskets, valueBaskets} from "./baskets";
+import {deployment, explorer} from "./chain";
 import BasketGallery from "./BasketGallery";
 import HeroDiagram from "./HeroDiagram";
 import MarketStrip from "./MarketStrip";
@@ -13,76 +12,29 @@ export const revalidate = 15;
 
 const STRIP_TICKERS = ["NVDAx", "AMDx", "TSMx", "ASMLx", "SPCXx", "TSLAx"];
 
-/** Reads one factory's registry. `version` is carried through so cards can say which. */
-async function loadFactory(factory: Address, version: 1 | 2) {
-  const addresses = await publicClient.readContract({
-    address: factory,
-    abi: thesisFactoryAbi,
-    functionName: "baskets"
-  });
-
-  return Promise.all(
-    addresses.map(async (address) => {
-      const [name, symbol, theme, constituents, supply] = await Promise.all([
-        publicClient.readContract({address, abi: thesisBasketAbi, functionName: "name"}),
-        publicClient.readContract({address, abi: thesisBasketAbi, functionName: "symbol"}),
-        publicClient.readContract({address, abi: thesisBasketAbi, functionName: "theme"}),
-        publicClient.readContract({address, abi: thesisBasketAbi, functionName: "constituents"}),
-        publicClient.readContract({address, abi: thesisBasketAbi, functionName: "totalSupply"})
-      ]);
-
-      const creator = await publicClient.readContract({
-        address: factory,
-        abi: thesisFactoryAbi,
-        functionName: "creatorOf",
-        args: [address]
-      });
-
-      // V1 baskets have no fee function at all; a missing one reads as no fee.
-      const feeBps = await publicClient
-        .readContract({address, abi: thesisBasketAbi, functionName: "feeBps"})
-        .catch(() => 0n);
-
-      const tickers = await Promise.all(
-        constituents.map((token) =>
-          publicClient
-            .readContract({address: token, abi: erc20Abi, functionName: "symbol"})
-            .catch(() => "?")
-        )
-      );
-
-      return {
-        address,
-        name,
-        symbol,
-        theme,
-        tickers,
-        creator,
-        version,
-        feeBps: Number(feeBps),
-        supply: formatUnits(supply, 18)
-      };
-    })
-  );
-}
-
-/**
- * Both factories are read, never one. V1 is the factory the submission was judged on and
- * stays live; V2 adds the creator fee alongside it.
- */
-async function loadBaskets() {
-  const factories: [Address, 1 | 2][] = [[deployment.factory, 1]];
-  if (deployment.factoryV2) factories.push([deployment.factoryV2, 2]);
-
-  const sets = await Promise.all(factories.map(([factory, version]) => loadFactory(factory, version)));
-  return sets.flat();
-}
-
 export default async function Home() {
   const baskets = await loadBaskets();
-  const totalConstituents = baskets.reduce((n, b) => n + b.tickers.length, 0);
+  const valuations = await valueBaskets(baskets);
 
-  const totalShares = baskets.reduce((n, b) => n + Number(b.supply), 0);
+  const cards = baskets.map((basket) => ({
+    address: basket.address,
+    name: basket.name,
+    symbol: basket.symbol,
+    theme: basket.theme,
+    tickers: basket.holdings.map((holding) => holding.ticker),
+    creator: basket.creator,
+    version: basket.version,
+    feeBps: basket.feeBps,
+    supply: formatUnits(basket.supply, 18)
+  }));
+
+  // The two figures that make the launchpad claim concrete: how many people launched
+  // something, and how much real money those baskets hold.
+  const creators = new Set(baskets.map((basket) => basket.creator.toLowerCase())).size;
+  const valueHeld = baskets.reduce(
+    (sum, basket) => sum + (valuations.get(basket.address)?.tvlUsd ?? 0),
+    0
+  );
 
   const strip = STRIP_TICKERS.map((ticker) => XSTOCK_CATALOG.find((t) => t.ticker === ticker))
     .filter((t): t is NonNullable<typeof t> => Boolean(t))
@@ -95,17 +47,24 @@ export default async function Home() {
         {/* Three direct children so the wide-screen grid has cells to place. */}
         <Reveal className="hero-copy">
           <h1>
-            Turn a theme into <em>one holdable asset</em>.
+            Anyone can <em>launch an index</em>.
           </h1>
           <p>
-            Buying a diversified position in tokenized equities means many swaps, many fees
-            and manual rebalancing forever. Thesis deploys the whole basket as a single
-            ERC-20 — fully backed, minted in one transaction, redeemable for the underlying
-            at any time.
+            Describe a theme in a sentence. Thesis deploys it as a single ERC-20, backed by
+            real tokenized equities held on X Layer, and pays you a share of every mint. No
+            approval, no listing process, and no owner — not even us.
           </p>
+          <div className="hero-cta">
+            <Link href="/launch">
+              <span className="cta-button">Launch a basket →</span>
+            </Link>
+            <Link className="chip" href="/leaderboard">
+              See what people launched
+            </Link>
+          </div>
         </Reveal>
 
-        <HeroDiagram tickers={baskets[0]?.tickers ?? ["NVDAx", "TSLAx", "SPYx"]} />
+        <HeroDiagram tickers={cards[0]?.tickers ?? ["NVDAx", "TSLAx", "SPYx"]} />
 
         <dl className="stats">
           <div className="stat">
@@ -115,20 +74,22 @@ export default async function Home() {
             </dd>
           </div>
           <div className="stat">
+            <dt>Creators</dt>
+            <dd>
+              <AnimatedNumber value={creators} />
+            </dd>
+          </div>
+          <div className="stat">
+            <dt>Value held</dt>
+            <dd>
+              <AnimatedNumber value={valueHeld} decimals={2} prefix="$" />
+            </dd>
+          </div>
+          <div className="stat">
             <dt>Equities available</dt>
             <dd>
               <AnimatedNumber value={XSTOCK_CATALOG.length} />
             </dd>
-          </div>
-          <div className="stat">
-            <dt>Shares minted</dt>
-            <dd>
-              <AnimatedNumber value={totalShares} decimals={totalShares === 0 ? 0 : 3} />
-            </dd>
-          </div>
-          <div className="stat">
-            <dt>Backing</dt>
-            <dd>1:1 real</dd>
           </div>
         </dl>
       </section>
@@ -147,7 +108,7 @@ export default async function Home() {
           </span>
         </div>
 
-        <BasketGallery baskets={baskets} />
+        <BasketGallery baskets={cards} />
       </section>
 
       <section className="section">
@@ -161,38 +122,51 @@ export default async function Home() {
       <section className="section">
         <div className="section-head">
           <h2>Why it is different</h2>
+          <span className="note">Every other team built a fund. Thesis builds what makes them.</span>
         </div>
         <div className="pillars">
           <Reveal delay={0}>
             <div className="pillar">
               <span className="num">01</span>
-              <h3>Research, not vibes</h3>
+              <h3>Not a fund. The factory.</h3>
               <p>
-                Describe a theme and the agent searches the open web, cites what it read,
-                and explains every holding. Selection is constrained to equities that
-                actually exist on X Layer, so nothing it picks can be imaginary.
+                Most products in this space are one fund, picked by one team. Thesis is the
+                thing that makes funds: describe any theme and deploy your own index in a
+                single transaction. No approval, no listing process, no gatekeeper — and no
+                limit on how many exist.
               </p>
             </div>
           </Reveal>
           <Reveal delay={80}>
             <div className="pillar">
               <span className="num">02</span>
-              <h3>Fully backed, always</h3>
+              <h3>Creators get paid</h3>
               <p>
-                Every share is a claim on real tokenized equities held by the contract.
-                Nothing synthetic, no leverage, no oracle. Redeem at any time and the
-                underlying comes back to your wallet.
+                Set a fee when you launch and earn it on every mint, forever. The contract
+                caps it at 1% and makes it immutable, so a basket can never be turned
+                against the people who bought it — not by its creator, and not by us.
               </p>
             </div>
           </Reveal>
           <Reveal delay={160}>
             <div className="pillar">
               <span className="num">03</span>
+              <h3>Fully backed, always</h3>
+              <p>
+                Every share is a claim on real tokenized equities held by the contract.
+                Nothing synthetic, no leverage, no oracle. The balances are on chain, so the
+                backing is something you check rather than something we claim.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={240}>
+            <div className="pillar">
+              <span className="num">04</span>
               <h3>Nobody is in charge</h3>
               <p>
-                No owner, no pause switch, no upgrade path. The creator of a basket gains
-                no power over it, and the agent can rebalance but can never move value
-                out. The contract enforces that, not a promise.
+                No owner, no pause switch, no upgrade path. The creator of a basket gains no
+                power over it, and the agent can rebalance but can never move value out. The
+                contract enforces that, not a promise.
               </p>
             </div>
           </Reveal>

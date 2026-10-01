@@ -54,11 +54,18 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
       <div className="gallery">
         {shown.map((basket, i) => (
         <Reveal key={basket.address} delay={i * 70}>
-          <Link className="card" href={`/basket/${basket.address}`}>
+          {/*
+            A div, not a link: the card holds its own Fork link, and nesting an anchor
+            inside an anchor is invalid. The title stretches to cover the card instead,
+            so the whole surface still opens the basket.
+          */}
+          <div className="card basket-card">
             <div className="card-head">
               <div>
                 <div className="card-title">
-                  {basket.name}
+                  <Link className="stretched" href={`/basket/${basket.address}`}>
+                    {basket.name}
+                  </Link>
                   {isMine(basket) && <span className="mine">Yours</span>}
                 </div>
                 <div className="card-theme">&ldquo;{basket.theme}&rdquo;</div>
@@ -83,7 +90,13 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
                 <span className="pill">{basket.feeBps / 100}% to creator</span>
               )}
             </div>
-          </Link>
+
+            <div className="card-actions">
+              <Link className="chip" href={`/launch?from=${basket.address}`}>
+                Fork it →
+              </Link>
+            </div>
+          </div>
           </Reveal>
         ))}
       </div>

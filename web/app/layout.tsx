@@ -13,11 +13,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Thesis — index launchpad for tokenized equities",
   description:
-    "Describe an investment theme and deploy a fully backed basket of tokenized equities on X Layer in one transaction.",
+    "Anyone can launch an index. Describe a theme, deploy it as a fully backed basket of tokenized equities on X Layer, and earn a share of every mint.",
   openGraph: {
     title: "Thesis — index launchpad for tokenized equities",
     description:
-      "Turn a theme into one holdable asset. Fully backed baskets of tokenized equities on X Layer.",
+      "Anyone can launch an index. Fully backed baskets of tokenized equities on X Layer, deployed by anyone, in one transaction.",
     type: "website"
   }
 };
