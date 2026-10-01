@@ -1,8 +1,16 @@
 export {xLayer, xLayerTestnet, SUPPORTED_CHAINS} from "./chains";
 export type {SupportedChainId} from "./chains";
-export {thesisBasketAbi, thesisFactoryAbi, thesisZapAbi, erc20Abi} from "./abis";
+export {
+  thesisBasketAbi,
+  thesisFactoryAbi,
+  thesisFactoryV1Abi,
+  thesisZapAbi,
+  erc20Abi
+} from "./abis";
 export {builderCodeSuffix} from "./builderCode";
 export {DEPLOYMENTS, deploymentFor} from "./deployments";
 export type {Deployment} from "./deployments";
 export {XSTOCKS, equityByAddress} from "./tokens";
 export type {TokenizedEquity} from "./tokens";
+export {splitFee, legAmounts, BPS, MAX_FEE_BPS} from "./fee";
+export type {FeeSplit} from "./fee";

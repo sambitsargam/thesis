@@ -73,6 +73,16 @@ export default async function BasketPage({params}: {params: Promise<{address: st
     functionName: "agent"
   });
 
+  // V1 baskets predate the creator fee and have no such function.
+  const [feeBps, creator] = await Promise.all([
+    publicClient
+      .readContract({address: basket, abi: thesisBasketAbi, functionName: "feeBps"})
+      .catch(() => 0n),
+    publicClient
+      .readContract({address: basket, abi: thesisBasketAbi, functionName: "creator"})
+      .catch(() => undefined)
+  ]);
+
   const [, units] = nav;
 
   const holdings = await Promise.all(
@@ -128,6 +138,8 @@ export default async function BasketPage({params}: {params: Promise<{address: st
           constituents={constituents}
           initial={initial}
           agent={agent}
+          feeBps={feeBps}
+          creator={creator}
           explorerBase={explorer("")}
         />
 

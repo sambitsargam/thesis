@@ -4,7 +4,13 @@ import {useRouter} from "next/navigation";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {type Briefing, BriefingCard, ResearchProgress} from "./Research";
 import {decodeEventLog} from "viem";
-import {thesisFactoryAbi, type TokenizedEquity, XSTOCKS} from "@thesis/shared";
+import {
+  MAX_FEE_BPS,
+  thesisFactoryAbi,
+  thesisFactoryV1Abi,
+  type TokenizedEquity,
+  XSTOCKS
+} from "@thesis/shared";
 import {useWallet} from "../WalletProvider";
 
 const MAX_CONSTITUENTS = 10;
@@ -19,12 +25,23 @@ const PRESETS = [
   {theme: "AI and electric vehicles, equal weight", symbol: "AIEV", tickers: ["NVDAx", "TSLAx"]}
 ];
 
-export default function LaunchForm({factory}: {factory: `0x${string}`}) {
+/**
+ * `feeCapable` is false while the app still writes to the V1 factory, whose baskets
+ * have no creator fee. It flips on its own once a V2 address is recorded.
+ */
+export default function LaunchForm({
+  factory,
+  feeCapable
+}: {
+  factory: `0x${string}`;
+  feeCapable: boolean;
+}) {
   const {account, client, discover} = useWallet();
   const router = useRouter();
 
   const [theme, setTheme] = useState("");
   const [symbol, setSymbol] = useState("");
+  const [fee, setFee] = useState("30");
   const [picked, setPicked] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TokenizedEquity[]>(XSTOCKS);
@@ -42,6 +59,14 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
   const [created, setCreated] = useState<{hash: string; basket?: string} | null>(null);
 
   const weight = picked.length > 0 ? 100 / picked.length : 0;
+
+  // Clamped here as well as in the contract, so the form cannot propose a deploy that
+  // the basket's own cap would revert.
+  const feeBps = useMemo(() => {
+    const parsed = Math.floor(Number(fee));
+    if (!Number.isFinite(parsed) || parsed < 0) return 0n;
+    return BigInt(Math.min(parsed, Number(MAX_FEE_BPS)));
+  }, [fee]);
   const name = useMemo(() => (theme.trim() ? `Thesis ${theme.trim()}` : ""), [theme]);
 
   // Debounced so typing a ticker does not fire a request per keystroke.
@@ -226,19 +251,30 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
         throw new Error(body.error ?? "Could not verify the routes.");
       }
 
-      const hash = await client.writeContract({
-        account,
-        chain: null,
-        address: factory,
-        abi: thesisFactoryAbi,
-        functionName: "createBasket",
-        args: [
-          name.slice(0, 64),
-          `THESIS-${symbol.trim().toUpperCase()}`.slice(0, 20),
-          theme.trim(),
-          picked as `0x${string}`[]
-        ]
-      });
+      const common = [
+        name.slice(0, 64),
+        `THESIS-${symbol.trim().toUpperCase()}`.slice(0, 20),
+        theme.trim(),
+        picked as `0x${string}`[]
+      ] as const;
+
+      const hash = feeCapable
+        ? await client.writeContract({
+            account,
+            chain: null,
+            address: factory,
+            abi: thesisFactoryAbi,
+            functionName: "createBasket",
+            args: [...common, feeBps]
+          })
+        : await client.writeContract({
+            account,
+            chain: null,
+            address: factory,
+            abi: thesisFactoryV1Abi,
+            functionName: "createBasket",
+            args: common
+          });
 
       setCreated({hash});
 
@@ -321,6 +357,36 @@ export default function LaunchForm({factory}: {factory: `0x${string}`}) {
             onChange={(e) => setSymbol(e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))}
           />
         </div>
+
+        {feeCapable && (
+          <div className="field" style={{marginTop: 22}}>
+            <label htmlFor="fee">
+              Your fee{" "}
+              <span className="avail">
+                · {(Number(feeBps) / 100).toFixed(2)}% of every mint, paid to you in USD₮0
+              </span>
+            </label>
+            <input
+              id="fee"
+              value={fee}
+              inputMode="numeric"
+              placeholder="30"
+              onChange={(e) => {
+                // Clamp as it is typed, so the field can never show a fee the contract
+                // would reject at deployment.
+                const digits = e.target.value.replace(/[^0-9]/g, "");
+                const capped = Math.min(Number(digits || "0"), Number(MAX_FEE_BPS));
+                setFee(digits === "" ? "" : String(capped));
+              }}
+            />
+            <p className="status" style={{marginTop: 8}}>
+              In basis points, capped at {Number(MAX_FEE_BPS)} ({Number(MAX_FEE_BPS) / 100}%) by the
+              contract itself — not by us, and not changeable after deployment. The fee comes out of
+              the buyer&rsquo;s USD₮0 before any equities are bought, so every share stays fully
+              backed. Set it to 0 to charge nothing.
+            </p>
+          </div>
+        )}
 
         <div className="field" style={{marginTop: 22}}>
           <label htmlFor="search">

@@ -1,6 +1,14 @@
 import {createPublicClient, createWalletClient, encodeFunctionData, formatUnits, http} from "viem";
 import {privateKeyToAccount} from "viem/accounts";
-import {builderCodeSuffix, deploymentFor, erc20Abi, thesisBasketAbi, xLayer} from "@thesis/shared";
+import {
+  builderCodeSuffix,
+  deploymentFor,
+  erc20Abi,
+  legAmounts,
+  splitFee,
+  thesisBasketAbi,
+  xLayer
+} from "@thesis/shared";
 import {fetchSwapQuote} from "@thesis/shared/okx";
 
 const CHAIN_ID = 196;
@@ -25,6 +33,11 @@ async function main(): Promise<void> {
 
   const basket = (process.env.BASKET_ADDRESS as `0x${string}`) ?? deployment.demoBasket;
 
+  // V1 baskets have no fee function; treat a missing one as zero.
+  const feeBps = await publicClient
+    .readContract({address: basket, abi: thesisBasketAbi, functionName: "feeBps"})
+    .catch(() => 0n);
+
   const [symbol, theme, constituents, supply] = await Promise.all([
     publicClient.readContract({address: basket, abi: thesisBasketAbi, functionName: "symbol"}),
     publicClient.readContract({address: basket, abi: thesisBasketAbi, functionName: "theme"}),
@@ -32,17 +45,23 @@ async function main(): Promise<void> {
     publicClient.readContract({address: basket, abi: thesisBasketAbi, functionName: "totalSupply"})
   ]);
 
+  // The creator's cut leaves before anything is bought, so legs are sized from the
+  // net amount. Quoting the gross deposit would make every leg ask for more than the
+  // contract approves, and the mint would revert.
+  const {fee, net} = splitFee(quoteAmount, feeBps);
+  const legs = legAmounts(net, constituents.length);
+
   console.log(`basket    ${symbol} @ ${basket}`);
   console.log(`theme     "${theme}"`);
   console.log(`supply    ${formatUnits(supply, SHARE_DECIMALS)}`);
-  console.log(`spending  ${formatUnits(quoteAmount, QUOTE_DECIMALS)} USD₮0 across ${constituents.length} legs\n`);
-
-  // Must match ThesisBasket._buyConstituents exactly: equal parts, dust to the last leg.
-  const n = BigInt(constituents.length);
-  const perLeg = quoteAmount / n;
-  const legAmounts = constituents.map((_, i) =>
-    i === constituents.length - 1 ? quoteAmount - perLeg * (n - 1n) : perLeg
-  );
+  console.log(`spending  ${formatUnits(quoteAmount, QUOTE_DECIMALS)} USD₮0 across ${constituents.length} legs`);
+  if (feeBps > 0n) {
+    console.log(
+      `fee       ${formatUnits(fee, QUOTE_DECIMALS)} USD₮0 to the creator (${Number(feeBps) / 100}%)`
+    );
+    console.log(`buying    ${formatUnits(net, QUOTE_DECIMALS)} USD₮0 of constituents`);
+  }
+  console.log("");
 
   const swapData: `0x${string}`[] = [];
   for (const [i, token] of constituents.entries()) {
@@ -50,7 +69,7 @@ async function main(): Promise<void> {
       chainId: CHAIN_ID,
       fromToken: deployment.quoteToken,
       toToken: token,
-      amount: legAmounts[i]!,
+      amount: legs[i]!,
       slippagePercent: process.env.SLIPPAGE_PERCENT ?? "1",
       // The adapter holds the tokens and receives the fill, never the end user.
       holder: deployment.router
@@ -63,7 +82,7 @@ async function main(): Promise<void> {
     }
 
     console.log(
-      `leg ${i}  ${formatUnits(legAmounts[i]!, QUOTE_DECIMALS)} USD₮0 -> ${token}` +
+      `leg ${i}  ${formatUnits(legs[i]!, QUOTE_DECIMALS)} USD₮0 -> ${token}` +
         `\n       expect ${formatUnits(quote.expectedOut, SHARE_DECIMALS)}  calldata ${quote.data.length / 2 - 1} bytes`
     );
     swapData.push(quote.data);
@@ -71,7 +90,7 @@ async function main(): Promise<void> {
 
   // The first mint prices one share per whole quote token, so this is exact.
   const minSharesOut =
-    supply === 0n ? (quoteAmount * 10n ** BigInt(SHARE_DECIMALS)) / 10n ** BigInt(QUOTE_DECIMALS) : 0n;
+    supply === 0n ? (net * 10n ** BigInt(SHARE_DECIMALS)) / 10n ** BigInt(QUOTE_DECIMALS) : 0n;
 
   const data = encodeFunctionData({
     abi: thesisBasketAbi,

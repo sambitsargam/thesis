@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type {Address} from "viem";
 import {formatUnits} from "viem";
 import {erc20Abi, thesisBasketAbi, thesisFactoryAbi} from "@thesis/shared";
 import {XSTOCK_CATALOG} from "@thesis/shared/catalog";
@@ -12,9 +13,10 @@ export const revalidate = 15;
 
 const STRIP_TICKERS = ["NVDAx", "AMDx", "TSMx", "ASMLx", "SPCXx", "TSLAx"];
 
-async function loadBaskets() {
+/** Reads one factory's registry. `version` is carried through so cards can say which. */
+async function loadFactory(factory: Address, version: 1 | 2) {
   const addresses = await publicClient.readContract({
-    address: deployment.factory,
+    address: factory,
     abi: thesisFactoryAbi,
     functionName: "baskets"
   });
@@ -30,11 +32,16 @@ async function loadBaskets() {
       ]);
 
       const creator = await publicClient.readContract({
-        address: deployment.factory,
+        address: factory,
         abi: thesisFactoryAbi,
         functionName: "creatorOf",
         args: [address]
       });
+
+      // V1 baskets have no fee function at all; a missing one reads as no fee.
+      const feeBps = await publicClient
+        .readContract({address, abi: thesisBasketAbi, functionName: "feeBps"})
+        .catch(() => 0n);
 
       const tickers = await Promise.all(
         constituents.map((token) =>
@@ -44,9 +51,31 @@ async function loadBaskets() {
         )
       );
 
-      return {address, name, symbol, theme, tickers, creator, supply: formatUnits(supply, 18)};
+      return {
+        address,
+        name,
+        symbol,
+        theme,
+        tickers,
+        creator,
+        version,
+        feeBps: Number(feeBps),
+        supply: formatUnits(supply, 18)
+      };
     })
   );
+}
+
+/**
+ * Both factories are read, never one. V1 is the factory the submission was judged on and
+ * stays live; V2 adds the creator fee alongside it.
+ */
+async function loadBaskets() {
+  const factories: [Address, 1 | 2][] = [[deployment.factory, 1]];
+  if (deployment.factoryV2) factories.push([deployment.factoryV2, 2]);
+
+  const sets = await Promise.all(factories.map(([factory, version]) => loadFactory(factory, version)));
+  return sets.flat();
 }
 
 export default async function Home() {
@@ -107,7 +136,12 @@ export default async function Home() {
       <section className="section">
         <div className="section-head">
           <h2>Baskets</h2>
-          <span className="note">Anyone can launch one. The creator gets no special powers.</span>
+          <span className="note">
+            Anyone can launch one.
+            {deployment.factoryV2
+              ? " Creators earn a capped fee and no special powers."
+              : " The creator gets no special powers."}
+          </span>
         </div>
 
         <BasketGallery baskets={baskets} />
@@ -263,11 +297,19 @@ export default async function Home() {
         </div>
         <div className="card">
           <div className="row">
-            <span>ThesisFactory</span>
+            <span>ThesisFactory V1</span>
             <a className="mono link" href={explorer(`address/${deployment.factory}`)}>
               {deployment.factory}
             </a>
           </div>
+          {deployment.factoryV2 && (
+            <div className="row">
+              <span>ThesisFactory V2</span>
+              <a className="mono link" href={explorer(`address/${deployment.factoryV2}`)}>
+                {deployment.factoryV2}
+              </a>
+            </div>
+          )}
           <div className="row">
             <span>OkxTradeRouter</span>
             <a className="mono link" href={explorer(`address/${deployment.router}`)}>
@@ -293,7 +335,10 @@ export default async function Home() {
         <h2>Launch your own basket</h2>
         <p>
           Describe a theme in a sentence. Deploy it as a tradeable ERC-20 in one
-          transaction. No approval, no listing process, no fee beyond gas.
+          transaction. No approval, no listing process.
+          {deployment.factoryV2
+            ? " Earn your share of every mint, capped at 1% by the contract and fixed the moment it deploys."
+            : " No fee beyond gas."}
         </p>
         <Link href="/launch">
           <span className="cta-button">Start with a theme →</span>

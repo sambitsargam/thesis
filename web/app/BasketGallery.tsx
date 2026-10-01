@@ -13,6 +13,9 @@ interface Basket {
   tickers: string[];
   creator: string;
   supply: string;
+  /** Which factory deployed it. V1 baskets charge no creator fee. */
+  version: 1 | 2;
+  feeBps: number;
 }
 
 export default function BasketGallery({baskets}: {baskets: Basket[]}) {
@@ -76,6 +79,9 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
                 </span>
               ))}
               <span className="pill">{basket.supply.replace(/\.0+$/, "")} shares</span>
+              {basket.feeBps > 0 && (
+                <span className="pill">{basket.feeBps / 100}% to creator</span>
+              )}
             </div>
           </Link>
           </Reveal>

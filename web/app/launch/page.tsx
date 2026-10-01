@@ -18,13 +18,17 @@ export default function LaunchPage() {
           </h1>
           <p>
             Describe a theme, pick the equities behind it, and deploy a tradeable ERC-20 in
-            one transaction. No approval, no listing process, no fee.
+            one transaction. No approval, no listing process.
+            {deployment.factoryV2 ? " You set the fee and you keep it." : " No fee beyond gas."}
           </p>
         </Reveal>
       </section>
 
       <section className="section" style={{marginTop: 8}}>
-        <LaunchForm factory={deployment.factory} />
+        <LaunchForm
+          factory={deployment.factoryV2 ?? deployment.factory}
+          feeCapable={Boolean(deployment.factoryV2)}
+        />
       </section>
 
       <section className="section">
@@ -45,6 +49,12 @@ export default function LaunchPage() {
               <span>Your powers</span>
               <span>None. You are recorded as creator; you cannot pause or drain it</span>
             </div>
+            {deployment.factoryV2 && (
+              <div className="row">
+                <span>Your earnings</span>
+                <span>Your chosen share of every mint, capped at 1% and fixed at deployment</span>
+              </div>
+            )}
             <div className="row">
               <span>Who can mint</span>
               <span>Anyone. Baskets are public once deployed</span>

@@ -59,6 +59,23 @@ export const thesisBasketAbi = [
   },
   {type: "function", name: "router", stateMutability: "view", inputs: [], outputs: [{type: "address"}]},
   {type: "function", name: "agent", stateMutability: "view", inputs: [], outputs: [{type: "address"}]},
+  {type: "function", name: "creator", stateMutability: "view", inputs: [], outputs: [{type: "address"}]},
+  {type: "function", name: "feeBps", stateMutability: "view", inputs: [], outputs: [{type: "uint256"}]},
+  {
+    type: "function",
+    name: "MAX_FEE_BPS",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{type: "uint256"}]
+  },
+  {
+    type: "event",
+    name: "CreatorFeePaid",
+    inputs: [
+      {name: "creator", type: "address", indexed: true},
+      {name: "amount", type: "uint256", indexed: false}
+    ]
+  },
   {
     type: "function",
     name: "rebalance",
@@ -97,7 +114,8 @@ export const thesisFactoryAbi = [
       {name: "name_", type: "string"},
       {name: "symbol_", type: "string"},
       {name: "theme_", type: "string"},
-      {name: "constituents_", type: "address[]"}
+      {name: "constituents_", type: "address[]"},
+      {name: "feeBps_", type: "uint256"}
     ],
     outputs: [{name: "basket", type: "address"}]
   },
@@ -133,8 +151,30 @@ export const thesisFactoryAbi = [
       {name: "name", type: "string", indexed: false},
       {name: "symbol", type: "string", indexed: false},
       {name: "theme", type: "string", indexed: false},
-      {name: "constituents", type: "address[]", indexed: false}
+      {name: "constituents", type: "address[]", indexed: false},
+      {name: "feeBps", type: "uint256", indexed: false}
     ]
+  }
+] as const;
+
+/**
+ * The V1 factory's `createBasket`, kept because V1 is still deployed and still the
+ * factory the app writes to until a V2 address is recorded. Only this one signature
+ * differs between versions — every view and the registry read the same — so this is a
+ * single fragment rather than a second copy of the ABI.
+ */
+export const thesisFactoryV1Abi = [
+  {
+    type: "function",
+    name: "createBasket",
+    stateMutability: "nonpayable",
+    inputs: [
+      {name: "name_", type: "string"},
+      {name: "symbol_", type: "string"},
+      {name: "theme_", type: "string"},
+      {name: "constituents_", type: "address[]"}
+    ],
+    outputs: [{name: "basket", type: "address"}]
   }
 ] as const;
 

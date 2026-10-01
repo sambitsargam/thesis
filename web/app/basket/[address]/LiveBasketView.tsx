@@ -17,6 +17,8 @@ interface Props {
   constituents: readonly `0x${string}`[];
   initial: LiveBasket;
   agent: `0x${string}`;
+  feeBps: bigint;
+  creator?: `0x${string}`;
   zap?: `0x${string}`;
   explorerBase: string;
 }
@@ -73,6 +75,10 @@ export default function LiveBasketView(props: Props) {
           <dd>{showUsd ? <AnimatedNumber value={navPerShare} decimals={4} prefix="$" /> : "—"}</dd>
         </div>
         <div className="stat">
+          <dt>Creator fee</dt>
+          <dd>{props.feeBps > 0n ? `${Number(props.feeBps) / 100}%` : "None"}</dd>
+        </div>
+        <div className="stat">
           <dt>Basket value</dt>
           <dd>{showUsd ? <AnimatedNumber value={totalValue} decimals={2} prefix="$" /> : "—"}</dd>
         </div>
@@ -87,6 +93,7 @@ export default function LiveBasketView(props: Props) {
           constituents={props.constituents}
           holdings={data.holdings}
           zap={props.zap}
+          feeBps={props.feeBps}
           supplyIsZero={supply === 0}
           onChanged={() => {
             setJustMinted(true);

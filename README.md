@@ -44,7 +44,8 @@ problem is real. On-chain it should be one click.
 
 | Contract | Address | |
 | --- | --- | --- |
-| `ThesisFactory` | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
+| `ThesisFactory` (V1, as submitted) | `0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e` | [OKLink](https://www.oklink.com/xlayer/address/0xB8b2d90DB14aa4D3964bC1c6a6821c2739f1254e) |
+| `ThesisFactory` (V2, creator fee) | `0x9E259699d4CA4F03BdB291F51D0116cfc66E6d56` | [OKLink](https://www.oklink.com/xlayer/address/0x9E259699d4CA4F03BdB291F51D0116cfc66E6d56) |
 | `OkxTradeRouter` | `0x2f0e2561283b0953B87C0069590DdE6fDD2766d9` | [OKLink](https://www.oklink.com/xlayer/address/0x2f0e2561283b0953B87C0069590DdE6fDD2766d9) |
 | `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
 | `THESIS-TECH` (demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
@@ -67,6 +68,33 @@ Decoded from that transaction's own calldata:
 
 Baskets are quoted in [USD₮0](https://www.oklink.com/xlayer/address/0x779Ded0c9e1022225f8E0630b35a9b54bE713736)
 (`0x779Ded0c…`, 6 decimals).
+
+### Two factories, both live
+
+V1 is the factory the submission was judged on. It is untouched and still deploys baskets.
+V2 ships beside it and adds one thing: a **creator fee**. Both share the same
+`OkxTradeRouter` and the same quote token, both appear in the app, and nothing was
+redeployed over anything. A V1 basket charges no fee and reads as such, forever.
+
+**The creator fee.** Anyone can launch an index — and now earn from it. The creator picks
+a fee at deployment, in basis points, and the contract itself caps it at **100 bps, one
+percent**. The cap is a `constant` in `ThesisBasket`, not a factory check, so it holds
+whichever factory deployed the basket. There is no setter: the fee is `immutable`, chosen
+once and never changed, by anyone, including us.
+
+The ordering is the whole design:
+
+```solidity
+uint256 net = quoteAmount - _payCreator(quoteAmount);  // fee leaves first
+_buyConstituents(net, swapData);                       // only `net` buys equities
+shares = _sharesFor(supply, net, held, received);      // shares price off `net`
+```
+
+The fee comes out of the **quote token, before any equity is bought**. The basket
+therefore only ever holds what `net` actually purchased, so every share stays fully backed
+and the scarcest-leg share maths is untouched — fewer tokens bought, proportionally fewer
+shares. A fee taken in shares would mint unbacked supply; a fee taken in constituents
+would perturb the holdings between mints. Neither is done here.
 
 ---
 

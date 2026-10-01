@@ -1,8 +1,8 @@
 "use client";
 
-import {useCallback, useEffect, useState} from "react";
-import {encodeFunctionData, parseUnits} from "viem";
-import {erc20Abi, thesisBasketAbi, thesisZapAbi} from "@thesis/shared";
+import {useCallback, useEffect, useMemo, useState} from "react";
+import {encodeFunctionData, formatUnits, parseUnits} from "viem";
+import {erc20Abi, legAmounts, splitFee, thesisBasketAbi, thesisZapAbi} from "@thesis/shared";
 import {useWallet} from "../../WalletProvider";
 
 const QUOTE_DECIMALS = 6;
@@ -20,6 +20,7 @@ interface Props {
   constituents: readonly `0x${string}`[];
   holdings: Holding[];
   zap?: `0x${string}`;
+  feeBps: bigint;
   supplyIsZero: boolean;
   onChanged?: () => void;
 }
@@ -155,13 +156,14 @@ export default function ActionPanel(props: Props) {
     const quoteAmount = parseUnits(amount, QUOTE_DECIMALS);
     if (quoteAmount <= 0n) throw new Error("Enter an amount above zero.");
 
-    // Split exactly as ThesisBasket does: equal parts, division dust to the last leg.
-    const n = BigInt(props.constituents.length);
-    const perLeg = quoteAmount / n;
-    const legs = props.constituents.map((token, i) => ({
-      token,
-      amount: (i === props.constituents.length - 1 ? quoteAmount - perLeg * (n - 1n) : perLeg).toString()
-    }));
+    /*
+     * The creator's fee leaves before anything is bought, so legs are sized from the
+     * net amount — exactly as the contract does. Quoting the gross deposit would make
+     * every leg ask for more than the contract approves, and the mint would revert.
+     */
+    const {net} = splitFee(quoteAmount, props.feeBps);
+    const amounts = legAmounts(net, props.constituents.length);
+    const legs = props.constituents.map((token, i) => ({token, amount: amounts[i]!.toString()}));
 
     setPhase("quoting");
     const response = await fetch("/api/quote", {
@@ -182,7 +184,8 @@ export default function ActionPanel(props: Props) {
       args: [props.basket, quoteAmount]
     });
 
-    const minSharesOut = props.supplyIsZero ? quoteAmount * 10n ** 12n : 0n;
+    // Shares price off what actually buys constituents, not the gross deposit.
+    const minSharesOut = props.supplyIsZero ? net * 10n ** 12n : 0n;
     const data = encodeFunctionData({
       abi: thesisBasketAbi,
       functionName: "mint",
@@ -284,6 +287,23 @@ export default function ActionPanel(props: Props) {
         }))
       : null;
 
+  /** The fee as the contract will actually compute it, so the disclosure cannot drift. */
+  const feeSplit = useMemo(() => {
+    if (mode !== "mint" || props.feeBps === 0n) return null;
+    try {
+      const quoteAmount = parseUnits(amount || "0", QUOTE_DECIMALS);
+      if (quoteAmount === 0n) return null;
+      const {fee, net} = splitFee(quoteAmount, props.feeBps);
+      return {
+        fee: formatUnits(fee, QUOTE_DECIMALS),
+        net: formatUnits(net, QUOTE_DECIMALS)
+      };
+    } catch {
+      // Mid-typing values like "0." do not parse; show nothing rather than guessing.
+      return null;
+    }
+  }, [amount, mode, props.feeBps]);
+
   const available = balances
     ? mode === "mint"
       ? `${Number(balances.quote).toFixed(6)} USD₮0`
@@ -375,6 +395,20 @@ export default function ActionPanel(props: Props) {
                 </button>
               </div>
             </div>
+
+            {feeSplit && (
+              <div className="preview">
+                <div className="preview-title">Before you sign</div>
+                <div className="row">
+                  <span>Creator fee · {Number(props.feeBps) / 100}%</span>
+                  <span className="tnum">{feeSplit.fee} USD₮0</span>
+                </div>
+                <div className="row">
+                  <span>Buys constituents</span>
+                  <span className="tnum">{feeSplit.net} USD₮0</span>
+                </div>
+              </div>
+            )}
 
             {preview && (
               <div className="preview">
