@@ -10,7 +10,9 @@ import {ITradeRouter} from "./interfaces/ITradeRouter.sol";
 /// @dev Deploys `ThesisBasket` instances and keeps the registry the agent and the web
 ///      app read from. Holds no funds and has no owner: it cannot pause a basket, move
 ///      its assets, or change its constituents after deployment. Anyone may call
-///      `createBasket`. Callers may append an ERC-8021 builder code to the calldata.
+///      `createBasket`. The caller becomes the basket's creator and earns its mint fee,
+///      but gains no control: the factory cannot pause a basket, move its assets or
+///      change its constituents. Callers may append an ERC-8021 builder code.
 contract ThesisFactory {
     /// @notice Token every basket from this factory accepts on mint.
     IERC20 public immutable quoteToken;
@@ -38,7 +40,8 @@ contract ThesisFactory {
         string name,
         string symbol,
         string theme,
-        address[] constituents
+        address[] constituents,
+        uint256 feeBps
     );
 
     error ZeroAddress();
@@ -63,14 +66,17 @@ contract ThesisFactory {
     /// @param symbol_ ERC-20 symbol of the basket's share token.
     /// @param theme_ Plain-language theme the basket expresses.
     /// @param constituents_ Tokenized equities to hold at equal weight.
+    /// @param feeBps_ The caller's share of each mint, capped by the basket itself.
     /// @return basket Address of the newly deployed basket.
     function createBasket(
         string calldata name_,
         string calldata symbol_,
         string calldata theme_,
-        address[] calldata constituents_
+        address[] calldata constituents_,
+        uint256 feeBps_
     ) external returns (address basket) {
-        basket = address(new ThesisBasket(name_, symbol_, theme_, quoteToken, router, agent, constituents_));
+        // The caller becomes the creator: they earn the fee and gain nothing else.
+        basket = _deploy(name_, symbol_, theme_, constituents_, feeBps_);
 
         uint256 index = _baskets.length;
         isBasket[basket] = true;
@@ -78,7 +84,33 @@ contract ThesisFactory {
         _baskets.push(basket);
         _createdBy[msg.sender].push(basket);
 
-        emit BasketCreated(basket, msg.sender, index, name_, symbol_, theme_, constituents_);
+        emit BasketCreated(basket, msg.sender, index, name_, symbol_, theme_, constituents_, feeBps_);
+    }
+
+    /// @dev The construction sits in its own frame: nine constructor arguments beside
+    ///      this function's calldata parameters overflows the stack otherwise.
+    function _deploy(
+        string calldata name_,
+        string calldata symbol_,
+        string calldata theme_,
+        address[] calldata constituents_,
+        uint256 feeBps_
+    ) private returns (address) {
+        return address(
+            new ThesisBasket(
+                ThesisBasket.Init({
+                    name: name_,
+                    symbol: symbol_,
+                    theme: theme_,
+                    quoteToken: quoteToken,
+                    router: router,
+                    agent: agent,
+                    creator: msg.sender,
+                    feeBps: feeBps_,
+                    constituents: constituents_
+                })
+            )
+        );
     }
 
     /// @notice Every basket this factory has deployed, in creation order.

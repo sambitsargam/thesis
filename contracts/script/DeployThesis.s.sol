@@ -25,6 +25,7 @@ contract DeployThesis is Script {
         string symbol;
         string theme;
         address[] constituents;
+        uint256 feeBps;
     }
 
     /// @notice Deploy the factory, then a demo basket when constituents are configured.
@@ -40,7 +41,9 @@ contract DeployThesis is Script {
         }
         factory = address(new ThesisFactory(IERC20(cfg.quoteToken), ITradeRouter(cfg.router), cfg.agent));
         if (cfg.constituents.length != 0) {
-            basket = ThesisFactory(factory).createBasket(cfg.name, cfg.symbol, cfg.theme, cfg.constituents);
+            basket = ThesisFactory(factory).createBasket(
+                cfg.name, cfg.symbol, cfg.theme, cfg.constituents, cfg.feeBps
+            );
         }
         vm.stopBroadcast();
 
@@ -62,6 +65,7 @@ contract DeployThesis is Script {
         // An empty or absent DEMO_CONSTITUENTS means "factory only", not a parse error.
         string memory raw = vm.envOr("DEMO_CONSTITUENTS", string(""));
         cfg.constituents = bytes(raw).length == 0 ? new address[](0) : vm.envAddress("DEMO_CONSTITUENTS", ",");
+        cfg.feeBps = vm.envOr("DEMO_FEE_BPS", uint256(0));
     }
 
     function _report(Config memory cfg, address factory, address basket) private view {

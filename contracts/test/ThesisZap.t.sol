@@ -22,6 +22,7 @@ contract ThesisZapTest is Test {
 
     address internal alice = makeAddr("alice");
     address internal agent = makeAddr("agent");
+    address internal creator = makeAddr("creator");
     address[] internal tokens;
 
     function setUp() public {
@@ -39,13 +40,17 @@ contract ThesisZapTest is Test {
 
         tokens = [address(xnvda), address(xamd)];
         basket = new ThesisBasket(
-            "Thesis Semis",
-            "THESIS-SEMI",
-            "semis",
-            IERC20(address(usdt)),
-            ITradeRouter(address(router)),
-            agent,
-            tokens
+            ThesisBasket.Init({
+                name: "Thesis Semis",
+                symbol: "THESIS-SEMI",
+                theme: "semis",
+                quoteToken: IERC20(address(usdt)),
+                router: ITradeRouter(address(router)),
+                agent: agent,
+                creator: creator,
+                feeBps: 0,
+                constituents: tokens
+            })
         );
         zap = new ThesisZap(ITradeRouter(address(router)));
 

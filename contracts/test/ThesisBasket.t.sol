@@ -24,6 +24,7 @@ contract ThesisBasketTest is Test {
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
     address internal agent = makeAddr("agent");
+    address internal creator = makeAddr("creator");
 
     address[] internal tokens;
 
@@ -46,15 +47,7 @@ contract ThesisBasketTest is Test {
         router.setRate(address(xnvda), address(xamd), 2e18, 1e18);
 
         tokens = [address(xnvda), address(xamd), address(xtsm), address(xasml)];
-        basket = new ThesisBasket(
-            "Thesis Semiconductors",
-            "THESIS-SEMI",
-            "semiconductor supply chain, equal weight",
-            IERC20(address(usdt)),
-            ITradeRouter(address(router)),
-            agent,
-            tokens
-        );
+        basket = new ThesisBasket(_init(tokens, 0));
     }
 
     /* ------------------------------------------------------------------ setup */
@@ -254,6 +247,128 @@ contract ThesisBasketTest is Test {
         vm.prank(alice);
         vm.expectRevert(ThesisBasket.EmptyBasket.selector);
         basket.redeem(1);
+    }
+
+    /* ------------------------------------------------------------ creator fee */
+
+    function test_FeeReachesTheCreatorAndNothingElseDoes() public {
+        ThesisBasket paid = new ThesisBasket(_init(tokens, 100)); // 1%
+        _priceAll();
+
+        _fund(alice, 1_000 * ONE_USDT);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), 1_000 * ONE_USDT);
+        paid.mint(1_000 * ONE_USDT, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        assertEq(usdt.balanceOf(creator), 10 * ONE_USDT, "1% of 1000");
+        assertEq(usdt.balanceOf(address(paid)), 0, "the basket keeps no quote token");
+        assertEq(paid.balanceOf(creator), 0, "the creator is not given shares");
+    }
+
+    function test_SharesPriceOffTheNetAmountNotTheGross() public {
+        ThesisBasket paid = new ThesisBasket(_init(tokens, 100));
+        _priceAll();
+
+        _fund(alice, 1_000 * ONE_USDT);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), 1_000 * ONE_USDT);
+        uint256 shares = paid.mint(1_000 * ONE_USDT, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        // 990 spent, and the first mint is one share per whole quote token.
+        assertEq(shares, 990 * ONE_SHARE, "shares follow what was actually spent");
+    }
+
+    function test_LegsAreSplitFromNetNotGross() public {
+        ThesisBasket paid = new ThesisBasket(_init(tokens, 100));
+        _priceAll();
+
+        _fund(alice, 1_000 * ONE_USDT);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), 1_000 * ONE_USDT);
+        paid.mint(1_000 * ONE_USDT, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        // The venue must have received 990, not 1000: quoting gross would make the
+        // calldata ask for more than the contract approved and revert every mint.
+        assertEq(usdt.balanceOf(address(router)), 990 * ONE_USDT, "venue saw the net amount");
+    }
+
+    function test_BackingHoldsAfterAFee() public {
+        ThesisBasket paid = new ThesisBasket(_init(tokens, 100));
+        _priceAll();
+
+        _fund(alice, 1_000 * ONE_USDT);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), 1_000 * ONE_USDT);
+        uint256 shares = paid.mint(1_000 * ONE_USDT, 0, _blobs(tokens.length));
+
+        // Every share remains a claim on real holdings: redeeming all of them empties
+        // the basket exactly, with nothing owed and nothing stranded.
+        uint256[] memory amounts = paid.redeem(shares);
+        vm.stopPrank();
+
+        assertEq(paid.totalSupply(), 0);
+        for (uint256 i; i < tokens.length; ++i) {
+            assertGt(amounts[i], 0, "each leg pays out");
+            assertEq(IERC20(tokens[i]).balanceOf(address(paid)), 0, "no residue");
+        }
+    }
+
+    function test_ZeroFeeBehavesExactlyAsBefore() public {
+        _mintFor(alice, 1_000 * ONE_USDT);
+
+        assertEq(basket.feeBps(), 0);
+        assertEq(usdt.balanceOf(creator), 0, "nobody is paid");
+        assertEq(basket.balanceOf(alice), 1_000 * ONE_SHARE);
+        assertEq(usdt.balanceOf(address(router)), 1_000 * ONE_USDT, "the whole deposit was spent");
+    }
+
+    function test_DustMintPaysNoFeeAndStillSucceeds() public {
+        ThesisBasket paid = new ThesisBasket(_init(tokens, 100));
+        _priceAll();
+
+        // 1% of 4 micro-USDT floors to zero; the mint must still go through.
+        _fund(alice, 4);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), 4);
+        uint256 shares = paid.mint(4, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        assertEq(usdt.balanceOf(creator), 0, "fee rounds down to nothing");
+        assertEq(shares, 4e12, "the full amount still bought constituents");
+    }
+
+    function test_RevertWhen_FeeIsAboveTheCap() public {
+        vm.expectRevert(abi.encodeWithSelector(ThesisBasket.FeeTooHigh.selector, uint256(101), uint256(100)));
+        new ThesisBasket(_init(tokens, 101));
+    }
+
+    function test_RevertWhen_CreatorIsTheZeroAddress() public {
+        ThesisBasket.Init memory init = _init(tokens, 0);
+        init.creator = address(0);
+        vm.expectRevert(ThesisBasket.NoCreator.selector);
+        new ThesisBasket(init);
+    }
+
+    function testFuzz_CreatorNeverReceivesMoreThanTheCap(uint256 quoteAmount, uint16 bps) public {
+        quoteAmount = bound(quoteAmount, 1 * ONE_USDT, 1_000_000 * ONE_USDT);
+        uint256 feeBps = bound(bps, 0, 100);
+
+        ThesisBasket paid = new ThesisBasket(_init(tokens, feeBps));
+        _priceAll();
+
+        _fund(alice, quoteAmount);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), quoteAmount);
+        paid.mint(quoteAmount, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        uint256 paidOut = usdt.balanceOf(creator);
+        assertLe(paidOut, (quoteAmount * 100) / 10_000, "never above one percent");
+        assertEq(paidOut, (quoteAmount * feeBps) / 10_000, "exactly the configured share");
+        assertEq(usdt.balanceOf(address(paid)), 0, "the basket keeps no quote token");
     }
 
     /* -------------------------------------------------------------- rebalance */
@@ -458,6 +573,15 @@ contract ThesisBasketTest is Test {
         }
     }
 
+    /// @dev Re-states every buy-side rate. Fresh baskets in a test still use the same
+    ///      mock venue, but a helper keeps each test readable.
+    function _priceAll() private {
+        _price(xnvda, 100);
+        _price(xamd, 50);
+        _price(xtsm, 25);
+        _price(xasml, 200);
+    }
+
     function _price(MockERC20 equity, uint256 usdtPerShare) private {
         router.setRate(address(usdt), address(equity), 1e18, usdtPerShare * ONE_USDT);
     }
@@ -489,9 +613,26 @@ contract ThesisBasketTest is Test {
         });
     }
 
+    /// @dev One place to build the constructor argument, so a fee variant is a one-liner.
+    function _init(address[] memory constituents_, uint256 feeBps_)
+        private
+        view
+        returns (ThesisBasket.Init memory)
+    {
+        return ThesisBasket.Init({
+            name: "Thesis Semiconductors",
+            symbol: "THESIS-SEMI",
+            theme: "semiconductor supply chain, equal weight",
+            quoteToken: IERC20(address(usdt)),
+            router: ITradeRouter(address(router)),
+            agent: agent,
+            creator: creator,
+            feeBps: feeBps_,
+            constituents: constituents_
+        });
+    }
+
     function _deploy(address[] memory constituents_) private returns (ThesisBasket) {
-        return new ThesisBasket(
-            "n", "s", "t", IERC20(address(usdt)), ITradeRouter(address(router)), agent, constituents_
-        );
+        return new ThesisBasket(_init(constituents_, 0));
     }
 }

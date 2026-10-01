@@ -31,7 +31,8 @@ contract ThesisFactoryTest is Test {
         string name,
         string symbol,
         string theme,
-        address[] constituents
+        address[] constituents,
+        uint256 feeBps
     );
 
     function setUp() public {
@@ -95,7 +96,7 @@ contract ThesisFactoryTest is Test {
 
     function test_CreateBasketEmitsTheRegistryEvent() public {
         vm.expectEmit(false, true, true, true, address(factory));
-        emit BasketCreated(address(0), alice, 0, "Thesis Semiconductors", "THESIS-SEMI", "semis", semis);
+        emit BasketCreated(address(0), alice, 0, "Thesis Semiconductors", "THESIS-SEMI", "semis", semis, 0);
 
         vm.prank(alice);
         _create("Thesis Semiconductors", "THESIS-SEMI", "semis");
@@ -146,14 +147,14 @@ contract ThesisFactoryTest is Test {
         dupes[1] = address(xnvda);
 
         vm.expectRevert(abi.encodeWithSelector(ThesisBasket.DuplicateConstituent.selector, address(xnvda)));
-        factory.createBasket("Bad", "BAD", "broken", dupes);
+        factory.createBasket("Bad", "BAD", "broken", dupes, 0);
 
         assertEq(factory.basketCount(), 0, "a failed deployment registers nothing");
     }
 
     function test_RevertWhen_CreatingWithNoConstituents() public {
         vm.expectRevert(ThesisBasket.NoConstituents.selector);
-        factory.createBasket("Bad", "BAD", "broken", new address[](0));
+        factory.createBasket("Bad", "BAD", "broken", new address[](0), 0);
     }
 
     function test_RevertWhen_ReadingPastTheEndOfTheRegistry() public {
@@ -221,6 +222,6 @@ contract ThesisFactoryTest is Test {
         private
         returns (address)
     {
-        return factory.createBasket(name_, symbol_, theme_, semis);
+        return factory.createBasket(name_, symbol_, theme_, semis, 0);
     }
 }

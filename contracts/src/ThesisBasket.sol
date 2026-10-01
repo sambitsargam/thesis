@@ -28,6 +28,12 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
     /// @notice One whole share, in the basket token's own 18 decimals.
     uint256 public constant ONE_SHARE = 1e18;
 
+    /// @notice Hard ceiling on the creator fee: 100 bps, one percent.
+    /// @dev Enforced here rather than in the factory so the cap holds whichever
+    ///      factory deployed the basket. A basket that could charge any fee would
+    ///      undo the claim that nobody has power over it once deployed.
+    uint256 public constant MAX_FEE_BPS = 100;
+
     /// @notice Plain-language theme this basket represents.
     string public theme;
 
@@ -45,6 +51,13 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
 
     /// @notice Address permitted to trigger a rebalance. Cannot move funds out.
     address public immutable agent;
+
+    /// @notice Who launched this basket and receives the mint fee.
+    /// @dev Has no other powers: cannot pause, upgrade, rebalance or touch holdings.
+    address public immutable creator;
+
+    /// @notice Creator's share of each mint, in basis points. Fixed at deployment.
+    uint256 public immutable feeBps;
 
     address[] private _constituents;
 
@@ -70,6 +83,10 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
     /// @notice Emitted once per rebalance, carrying the fill of every leg.
     event Rebalanced(address indexed caller, uint256[] amountsOut);
 
+    /// @notice Emitted when a mint pays the creator. Separate from `Minted` so
+    ///         earnings can be totalled without decoding every mint.
+    event CreatorFeePaid(address indexed creator, uint256 amount);
+
     error NoConstituents();
     error TooManyConstituents();
     error InvalidConstituent(address token);
@@ -85,52 +102,70 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
     error MissingSlippageBound(uint256 index);
     error QuoteResidue(uint256 amount);
     error SwapDataLengthMismatch(uint256 provided, uint256 expected);
+    error FeeTooHigh(uint256 feeBps, uint256 maxFeeBps);
+    error NoCreator();
+
+    /// @notice Everything a basket is created with.
+    /// @dev Grouped into a struct because nine positional arguments — three of them
+    ///      strings and one an array — overflow the ABI decoder's stack.
+    struct Init {
+        string name;
+        string symbol;
+        string theme;
+        IERC20 quoteToken;
+        ITradeRouter router;
+        address agent;
+        address creator;
+        uint256 feeBps;
+        address[] constituents;
+    }
 
     /// @notice Deploy a basket over a fixed, equal-weight set of constituents.
-    /// @param name_ ERC-20 name of the share token.
-    /// @param symbol_ ERC-20 symbol of the share token.
-    /// @param theme_ Plain-language theme the basket expresses.
-    /// @param quoteToken_ Token accepted by `mint`, typically USDT.
-    /// @param router_ Venue used to fill mint swaps.
-    /// @param agent_ Address allowed to call `rebalance`. Has no other powers.
-    /// @param constituents_ Tokenized equities held by the basket. Fixed for its lifetime.
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        string memory theme_,
-        IERC20 quoteToken_,
-        ITradeRouter router_,
-        address agent_,
-        address[] memory constituents_
-    ) ERC20(name_, symbol_) {
+    /// @param init Name, symbol, theme, quote token, venue, agent, creator, fee and
+    ///        the constituents held for the basket's lifetime.
+    constructor(Init memory init) ERC20(init.name, init.symbol) {
+        if (
+            address(init.quoteToken) == address(0) || address(init.router) == address(0)
+                || init.agent == address(0)
+        ) {
+            revert InvalidConstituent(address(0));
+        }
+        if (init.creator == address(0)) revert NoCreator();
+        if (init.feeBps > MAX_FEE_BPS) revert FeeTooHigh(init.feeBps, MAX_FEE_BPS);
+
+        _setConstituents(init.constituents, address(init.quoteToken));
+
+        agent = init.agent;
+        creator = init.creator;
+        feeBps = init.feeBps;
+        factory = msg.sender;
+        theme = init.theme;
+        quoteToken = init.quoteToken;
+        router = init.router;
+        _quoteScale = 10 ** IERC20Metadata(address(init.quoteToken)).decimals();
+    }
+
+    /// @dev Validates and records the constituents in its own frame. Inlining this
+    ///      alongside nine constructor arguments overflows the stack.
+    function _setConstituents(address[] memory constituents_, address quote) private {
         uint256 n = constituents_.length;
         if (n == 0) revert NoConstituents();
         if (n > MAX_CONSTITUENTS) revert TooManyConstituents();
-        if (address(quoteToken_) == address(0) || address(router_) == address(0) || agent_ == address(0)) {
-            revert InvalidConstituent(address(0));
-        }
 
         for (uint256 i; i < n; ++i) {
             address token = constituents_[i];
-            if (token == address(0) || token == address(quoteToken_)) revert InvalidConstituent(token);
+            if (token == address(0) || token == quote) revert InvalidConstituent(token);
             if (_isConstituent[token]) revert DuplicateConstituent(token);
             _isConstituent[token] = true;
             _constituents.push(token);
         }
-
-        agent = agent_;
-        factory = msg.sender;
-        theme = theme_;
-        quoteToken = quoteToken_;
-        router = router_;
-        _quoteScale = 10 ** IERC20Metadata(address(quoteToken_)).decimals();
     }
 
     /// @notice Deposit quote tokens, buy the constituents in equal parts, receive shares.
     /// @dev The first mint prices one share per whole quote token. Later mints price
     ///      shares off the scarcest leg actually received, so a bad fill on any single
     ///      constituent dilutes the minter rather than existing holders.
-    /// @param quoteAmount Amount of `quoteToken` to spend.
+    /// @param quoteAmount Amount of `quoteToken` to spend, before the creator fee.
     /// @param minSharesOut Revert if fewer shares than this would be minted.
     /// @param swapData One venue calldata blob per constituent, in `constituents()` order,
     ///        fetched off-chain by the caller. Each must sell exactly this leg's share of
@@ -147,18 +182,43 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
 
         uint256 supply = totalSupply();
         quoteToken.safeTransferFrom(msg.sender, address(this), quoteAmount);
-        quoteToken.forceApprove(address(router), quoteAmount);
 
-        (uint256[] memory held, uint256[] memory received) = _buyConstituents(quoteAmount, swapData);
+        /*
+         * The fee leaves before anything is bought, and everything downstream works
+         * from what remains.
+         *
+         * Taking it here is what keeps the basket fully backed: the contract never
+         * holds the fee, so every share is still a claim on real holdings. Paying the
+         * creator in shares would mint supply backed by nothing; paying in
+         * constituents would hand them dust and disturb `held` between mints.
+         */
+        uint256 net = quoteAmount - _payCreator(quoteAmount);
+
+        quoteToken.forceApprove(address(router), net);
+
+        (uint256[] memory held, uint256[] memory received) = _buyConstituents(net, swapData);
 
         quoteToken.forceApprove(address(router), 0);
 
-        shares = _sharesFor(supply, quoteAmount, held, received);
+        // `net`, never `quoteAmount`: the first mint prices one share per whole quote
+        // token, and pricing gross would mint shares for money that bought nothing.
+        shares = _sharesFor(supply, net, held, received);
         if (shares == 0) revert ZeroShares();
         if (shares < minSharesOut) revert SlippageExceeded(shares, minSharesOut);
 
         _mint(msg.sender, shares);
         emit Minted(msg.sender, quoteAmount, shares);
+    }
+
+    /// @dev Sends the creator's cut and returns it. Rounds down, so dust-sized mints
+    ///      pay nothing rather than reverting.
+    function _payCreator(uint256 quoteAmount) private returns (uint256 fee) {
+        if (feeBps == 0) return 0;
+        fee = Math.mulDiv(quoteAmount, feeBps, BPS);
+        if (fee == 0) return 0;
+
+        quoteToken.safeTransfer(creator, fee);
+        emit CreatorFeePaid(creator, fee);
     }
 
     /// @dev Spends the deposit in equal parts, sending the division dust to the last leg
