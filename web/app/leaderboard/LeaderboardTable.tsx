@@ -113,9 +113,14 @@ export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; exp
                   </div>
                 </dl>
 
-                <a className="board-creator mono link" href={`${explorerBase}address/${row.creator}`}>
-                  {row.creator.slice(0, 6)}…{row.creator.slice(-4)}
-                </a>
+                <div className="board-foot">
+                  <a className="mono link" href={`${explorerBase}address/${row.creator}`}>
+                    {row.creator.slice(0, 6)}…{row.creator.slice(-4)}
+                  </a>
+                  <Link className="chip" href={`/launch?from=${row.address}`}>
+                    Fork →
+                  </Link>
+                </div>
               </div>
             </Reveal>
           );

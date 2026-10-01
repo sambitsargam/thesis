@@ -122,6 +122,17 @@ units, at a stated block, with the command to re-read them yourself.
 cast call <xStock> "balanceOf(address)(uint256)" <basket> --rpc-url https://rpc.xlayer.tech
 ```
 
+### Fork anything
+
+Every basket and every leaderboard row carries a **Fork** link to
+`/launch?from=<basket>`, which reads that basket's theme and holdings on chain and opens the
+create flow prefilled. Change what you like — add an equity, drop one, rewrite the theme,
+set your own fee — and deploy your own. The basket you forked is untouched, because nothing
+in Thesis can reach into a deployed basket.
+
+An address that is not a readable basket resolves to nothing and the form simply opens
+empty: the parameter comes from a URL, so it can name any contract at all.
+
 Because Thesis holds the actual equities, the balances *are* the proof — there is no
 published NAV to trust and no oracle in the path. That is also what makes a basket usable as
 collateral: it is a plain ERC-20 whose backing any lending market on X Layer can read

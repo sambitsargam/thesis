@@ -135,6 +135,9 @@ export default async function BasketPage({params}: {params: Promise<{address: st
             <p>&ldquo;{theme}&rdquo;</p>
             <div className="controls" style={{marginTop: 18}}>
               <ShareButton name={name} theme={theme} />
+              <Link className="chip" href={`/launch?from=${basket}`}>
+                Fork this basket
+              </Link>
               <span className="avail">Anyone with the link can mint it</span>
             </div>
           </Reveal>

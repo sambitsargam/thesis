@@ -25,29 +25,49 @@ const PRESETS = [
   {theme: "AI and electric vehicles, equal weight", symbol: "AIEV", tickers: ["NVDAx", "TSLAx"]}
 ];
 
+/** An existing basket this launch starts from, resolved on the server. */
+export interface Fork {
+  address: string;
+  name: string;
+  theme: string;
+  constituents: TokenizedEquity[];
+}
+
 /**
  * `feeCapable` is false while the app still writes to the V1 factory, whose baskets
  * have no creator fee. It flips on its own once a V2 address is recorded.
  */
 export default function LaunchForm({
   factory,
-  feeCapable
+  feeCapable,
+  fork
 }: {
   factory: `0x${string}`;
   feeCapable: boolean;
+  fork?: Fork;
 }) {
   const {account, client, discover} = useWallet();
   const router = useRouter();
 
-  const [theme, setTheme] = useState("");
+  const [theme, setTheme] = useState(fork?.theme ?? "");
   const [symbol, setSymbol] = useState("");
   const [fee, setFee] = useState("30");
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(
+    fork ? fork.constituents.map((token) => token.address) : []
+  );
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<TokenizedEquity[]>(XSTOCKS);
+  const [results, setResults] = useState<TokenizedEquity[]>(
+    fork && fork.constituents.length > 0 ? fork.constituents : XSTOCKS
+  );
   const [total, setTotal] = useState<number | null>(null);
   const [searching, setSearching] = useState(false);
-  const known = useRef(new Map<string, TokenizedEquity>(XSTOCKS.map((t) => [t.address, t])));
+  // Seeded with the fork's holdings too: they may be equities the default list omits,
+  // and an unknown address would render as a chip with no ticker.
+  const known = useRef(
+    new Map<string, TokenizedEquity>(
+      [...XSTOCKS, ...(fork?.constituents ?? [])].map((t) => [t.address, t])
+    )
+  );
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [resolving, setResolving] = useState(false);
@@ -302,6 +322,20 @@ export default function LaunchForm({
   return (
     <div className="panel">
       <div className="panel-body">
+        {fork && (
+          <div className="preview" style={{marginBottom: 20}}>
+            <div className="preview-title">Forked from</div>
+            <div className="row">
+              <span>{fork.name}</span>
+              <span className="tnum">{fork.constituents.length} holdings</span>
+            </div>
+            <p className="status" style={{marginTop: 8}}>
+              Everything below is a copy you can change — add an equity, drop one, rewrite the
+              theme, set your own fee. The basket you forked is untouched.
+            </p>
+          </div>
+        )}
+
         <div className="field">
           <label htmlFor="theme">Your theme</label>
           <input

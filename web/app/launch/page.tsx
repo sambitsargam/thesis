@@ -1,11 +1,58 @@
 import Link from "next/link";
-import {deployment} from "../chain";
+import {erc20Abi, thesisBasketAbi, type TokenizedEquity} from "@thesis/shared";
+import {XSTOCK_CATALOG} from "@thesis/shared/catalog";
+import {deployment, publicClient} from "../chain";
 import {Reveal} from "../motion";
-import LaunchForm from "./LaunchForm";
+import LaunchForm, {type Fork} from "./LaunchForm";
 
 export const metadata = {title: "Launch a basket — Thesis"};
 
-export default function LaunchPage() {
+/**
+ * Resolves `?from=0x…` into a basket to copy.
+ *
+ * Anything that is not a readable basket resolves to nothing rather than an error: the
+ * address comes from a URL, so it can be any contract at all, including one that is not
+ * a basket. The form then simply opens empty.
+ */
+async function resolveFork(from?: string): Promise<Fork | undefined> {
+  if (!from || !/^0x[0-9a-fA-F]{40}$/.test(from)) return undefined;
+  const address = from as `0x${string}`;
+
+  try {
+    const [name, theme, constituents] = await Promise.all([
+      publicClient.readContract({address, abi: thesisBasketAbi, functionName: "name"}),
+      publicClient.readContract({address, abi: thesisBasketAbi, functionName: "theme"}),
+      publicClient.readContract({address, abi: thesisBasketAbi, functionName: "constituents"})
+    ]);
+
+    const holdings: TokenizedEquity[] = await Promise.all(
+      constituents.map(async (token) => {
+        const listed = XSTOCK_CATALOG.find(
+          (equity) => equity.address.toLowerCase() === token.toLowerCase()
+        );
+        if (listed) return listed;
+
+        // Not in our catalogue — a basket forked from elsewhere can still name it.
+        const ticker = await publicClient
+          .readContract({address: token, abi: erc20Abi, functionName: "symbol"})
+          .catch(() => "?");
+        return {address: token, ticker, name: ticker} as TokenizedEquity;
+      })
+    );
+
+    return {address, name, theme, constituents: holdings};
+  } catch {
+    return undefined;
+  }
+}
+
+export default async function LaunchPage({
+  searchParams
+}: {
+  searchParams: Promise<{from?: string}>;
+}) {
+  const fork = await resolveFork((await searchParams).from);
+
   return (
     <main>
       <section className="hero" style={{paddingBottom: 30}}>
@@ -14,7 +61,7 @@ export default function LaunchPage() {
             ← All baskets
           </Link>
           <h1 style={{fontSize: "clamp(1.9rem, 5vw, 2.7rem)", maxWidth: "18ch"}}>
-            Launch your own basket
+            {fork ? `Fork ${fork.name}` : "Launch your own basket"}
           </h1>
           <p>
             Describe a theme, pick the equities behind it, and deploy a tradeable ERC-20 in
@@ -28,6 +75,7 @@ export default function LaunchPage() {
         <LaunchForm
           factory={deployment.factoryV2 ?? deployment.factory}
           feeCapable={Boolean(deployment.factoryV2)}
+          fork={fork}
         />
       </section>
 
