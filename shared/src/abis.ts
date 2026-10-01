@@ -158,6 +158,23 @@ export const thesisFactoryAbi = [
 ] as const;
 
 /**
+ * A basket's lifetime counters. Separate from `thesisBasketAbi` only so a caller can
+ * multicall exactly these three without carrying the whole interface; V1 baskets do not
+ * implement them and will revert.
+ */
+export const basketCountersAbi = [
+  {type: "function", name: "totalQuoteIn", stateMutability: "view", inputs: [], outputs: [{type: "uint128"}]},
+  {type: "function", name: "mintCount", stateMutability: "view", inputs: [], outputs: [{type: "uint64"}]},
+  {
+    type: "function",
+    name: "totalCreatorFees",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{type: "uint128"}]
+  }
+] as const;
+
+/**
  * The V1 factory's `createBasket`, kept because V1 is still deployed and still the
  * factory the app writes to until a V2 address is recorded. Only this one signature
  * differs between versions — every view and the registry read the same — so this is a

@@ -1,6 +1,7 @@
 export {xLayer, xLayerTestnet, SUPPORTED_CHAINS} from "./chains";
 export type {SupportedChainId} from "./chains";
 export {
+  basketCountersAbi,
   thesisBasketAbi,
   thesisFactoryAbi,
   thesisFactoryV1Abi,

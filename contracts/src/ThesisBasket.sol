@@ -7,6 +7,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ITradeRouter} from "./interfaces/ITradeRouter.sol";
 
 /// @title ThesisBasket
@@ -62,6 +63,28 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
     address[] private _constituents;
 
     mapping(address token => bool) private _isConstituent;
+
+    /*
+     * Lifetime totals, written on every mint and never decremented.
+     *
+     * They exist because history is not readable here: X Layer's public RPCs cap
+     * `eth_getLogs` at 100 blocks, so replaying `Minted` across a basket's life would
+     * take thousands of requests. Keeping the totals on chain makes them a single call,
+     * and keeps the numbers the app ranks baskets by verifiable against the contract
+     * rather than against a database we run.
+     *
+     * Declared in this order so `totalQuoteIn` and `mintCount` share one slot: a mint
+     * then pays for one storage write, or two when there is a fee.
+     */
+
+    /// @notice Quote token ever paid into `mint`, gross, before the creator's fee.
+    uint128 public totalQuoteIn;
+
+    /// @notice Number of mints this basket has ever executed.
+    uint64 public mintCount;
+
+    /// @notice Quote token ever paid to the creator as fees.
+    uint128 public totalCreatorFees;
 
     /// @notice One swap in a rebalance: sell `amountIn` of `tokenIn` for `tokenOut`.
     /// @dev The agent prices the basket off-chain and submits the legs. This contract
@@ -207,6 +230,15 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
         if (shares < minSharesOut) revert SlippageExceeded(shares, minSharesOut);
 
         _mint(msg.sender, shares);
+
+        // Gross, matching `Minted`: this is what buyers actually paid in.
+        totalQuoteIn += SafeCast.toUint128(quoteAmount);
+        unchecked {
+            // A uint64 counter cannot realistically overflow; one mint per block for
+            // 584 billion years would be needed.
+            ++mintCount;
+        }
+
         emit Minted(msg.sender, quoteAmount, shares);
     }
 
@@ -218,6 +250,7 @@ contract ThesisBasket is ERC20, ReentrancyGuard {
         if (fee == 0) return 0;
 
         quoteToken.safeTransfer(creator, fee);
+        totalCreatorFees += SafeCast.toUint128(fee);
         emit CreatorFeePaid(creator, fee);
     }
 

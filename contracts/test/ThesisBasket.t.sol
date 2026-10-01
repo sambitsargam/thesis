@@ -266,6 +266,81 @@ contract ThesisBasketTest is Test {
         assertEq(paid.balanceOf(creator), 0, "the creator is not given shares");
     }
 
+    function test_CountersStartAtZero() public view {
+        assertEq(basket.totalQuoteIn(), 0, "nothing paid in yet");
+        assertEq(basket.mintCount(), 0, "no mints yet");
+        assertEq(basket.totalCreatorFees(), 0, "no fees yet");
+    }
+
+    function test_CountersAccumulateAcrossMints() public {
+        _priceAll();
+
+        _mintFor(alice, 100 * ONE_USDT);
+        _mintFor(bob, 250 * ONE_USDT);
+
+        // Gross, matching what `Minted` reports and what the buyers actually paid.
+        assertEq(basket.totalQuoteIn(), 350 * ONE_USDT, "sum of both deposits");
+        assertEq(basket.mintCount(), 2, "one per mint");
+    }
+
+    function test_CreatorFeeTotalMatchesWhatTheCreatorReceived() public {
+        ThesisBasket paid = new ThesisBasket(_init(tokens, 100)); // 1%
+        _priceAll();
+
+        _fund(alice, 1_000 * ONE_USDT);
+        vm.startPrank(alice);
+        usdt.approve(address(paid), 1_500 * ONE_USDT);
+        paid.mint(1_000 * ONE_USDT, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        _fund(bob, 500 * ONE_USDT);
+        vm.startPrank(bob);
+        usdt.approve(address(paid), 500 * ONE_USDT);
+        paid.mint(500 * ONE_USDT, 0, _blobs(tokens.length));
+        vm.stopPrank();
+
+        assertEq(paid.totalQuoteIn(), 1_500 * ONE_USDT, "gross across both mints");
+        assertEq(paid.mintCount(), 2, "two mints");
+        assertEq(paid.totalCreatorFees(), 15 * ONE_USDT, "1% of 1500");
+        // The counter is the creator's balance, not an independent estimate of it.
+        assertEq(paid.totalCreatorFees(), usdt.balanceOf(creator), "counter tracks reality");
+    }
+
+    function test_ZeroFeeBasketNeverAccruesCreatorFees() public {
+        _priceAll();
+        _mintFor(alice, 100 * ONE_USDT);
+
+        assertEq(basket.feeBps(), 0, "the default basket charges nothing");
+        assertEq(basket.totalCreatorFees(), 0, "and so accrues nothing");
+        assertEq(basket.mintCount(), 1, "but still counts the mint");
+    }
+
+    function test_RedeemingLeavesTheLifetimeCountersAlone() public {
+        _priceAll();
+        uint256 shares = _mintFor(alice, 100 * ONE_USDT);
+
+        vm.prank(alice);
+        basket.redeem(shares);
+
+        // Cumulative, not current: redeeming does not unmake the money that came in.
+        assertEq(basket.totalQuoteIn(), 100 * ONE_USDT, "still records the deposit");
+        assertEq(basket.mintCount(), 1, "still records the mint");
+        assertEq(basket.totalSupply(), 0, "even though the basket is now empty");
+    }
+
+    function testFuzz_CountersMatchTheSumOfEveryMint(uint64 a, uint64 b) public {
+        // Bounded to amounts the mock venue can actually fill.
+        uint256 first = bound(uint256(a), ONE_USDT, 1_000_000 * ONE_USDT);
+        uint256 second = bound(uint256(b), ONE_USDT, 1_000_000 * ONE_USDT);
+        _priceAll();
+
+        _mintFor(alice, first);
+        _mintFor(bob, second);
+
+        assertEq(basket.totalQuoteIn(), first + second, "no deposit is lost or double counted");
+        assertEq(basket.mintCount(), 2, "exactly two mints");
+    }
+
     function test_SharesPriceOffTheNetAmountNotTheGross() public {
         ThesisBasket paid = new ThesisBasket(_init(tokens, 100));
         _priceAll();
