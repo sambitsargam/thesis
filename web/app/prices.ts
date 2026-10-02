@@ -4,8 +4,8 @@ import {deployment} from "./chain";
 
 const CHAIN_ID = 196;
 const PROBE_USDT = 10_000_000n; // 10 USD₮0 — large enough to price precisely.
-const TTL_MS = 60_000;
-const MAX_PER_REQUEST = 12;
+const TTL_MS = 180_000;
+const PER_REQUEST = 12;
 
 // Cached per token, not per request: a basket can hold any of hundreds of equities,
 // so a single fixed list would leave most baskets with no USD values at all.
@@ -43,19 +43,28 @@ export async function priceTokens(input: string[]): Promise<Record<string, numbe
     else prices[address] = cached;
   }
 
-  if (missing.length > 0) {
+  /*
+   * Every missing token is priced, in chunks — not just the first dozen.
+   *
+   * Truncating was invisible while a handful of baskets shared the same few equities. It
+   * stops being invisible the moment the catalogue spreads across a dozen baskets: any
+   * basket holding an unpriced token values as null, so a leaderboard of sixteen baskets
+   * reported a total value of $0.00 while holding real money.
+   */
+  for (let from = 0; from < missing.length; from += PER_REQUEST) {
+    const chunk = missing.slice(from, from + PER_REQUEST);
     const quotes = await fetchSwapQuotes(
-      missing.slice(0, MAX_PER_REQUEST).map((token) => ({token, amount: PROBE_USDT})),
+      chunk.map((token) => ({token, amount: PROBE_USDT})),
       {
         chainId: CHAIN_ID,
         fromToken: deployment.quoteToken,
         slippagePercent: "1",
         holder: deployment.router
       }
-    );
+    ).catch(() => []);
 
     quotes.forEach((quote, i) => {
-      const address = missing[i]!;
+      const address = chunk[i]!;
       const out = Number(quote.expectedOut) / 1e18;
       if (out <= 0) return;
       const price = Number(PROBE_USDT) / 1e6 / out;

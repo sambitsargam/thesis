@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {formatUnits} from "viem";
-import {loadBaskets, valueBaskets} from "../baskets";
+import {loadBaskets} from "../baskets";
 import {explorer} from "../chain";
 import {Reveal} from "../motion";
 import LeaderboardTable, {type Row} from "./LeaderboardTable";
@@ -17,7 +17,6 @@ const QUOTE_DECIMALS = 6;
 
 export default async function LeaderboardPage() {
   const baskets = await loadBaskets();
-  const valuations = await valueBaskets(baskets);
 
   const rows: Row[] = baskets.map((basket) => ({
     address: basket.address,
@@ -25,6 +24,12 @@ export default async function LeaderboardPage() {
     symbol: basket.symbol,
     theme: basket.theme,
     tickers: basket.holdings.map((holding) => holding.ticker),
+    // Handed over raw so the browser can price them; the server stays off the aggregator
+    // and the page paints as fast as the chain answers.
+    holdings: basket.holdings.map((holding) => ({
+      token: holding.token,
+      amount: Number(formatUnits(holding.balance, 18))
+    })),
     creator: basket.creator,
     version: basket.version,
     feeBps: basket.feeBps,
@@ -34,8 +39,7 @@ export default async function LeaderboardPage() {
     mints: basket.counters ? basket.counters.mints : null,
     creatorEarned: basket.counters
       ? Number(formatUnits(basket.counters.creatorFees, QUOTE_DECIMALS))
-      : null,
-    tvlUsd: valuations.get(basket.address)?.tvlUsd ?? null
+      : null
   }));
 
   // Who is actually making money here — the most launchpad-shaped fact on the page.
@@ -52,8 +56,7 @@ export default async function LeaderboardPage() {
     .filter(([, totals]) => totals.earned > 0)
     .sort((a, b) => b[1].earned - a[1].earned);
 
-  const priced = rows.filter((row) => row.tvlUsd !== null);
-  const totalTvl = priced.reduce((sum, row) => sum + row.tvlUsd!, 0);
+  const totalIn = rows.reduce((sum, row) => sum + (row.moneyIn ?? 0), 0);
   const counted = rows.filter((row) => row.mints !== null);
   const totalMints = counted.reduce((sum, row) => sum + row.mints!, 0);
   const creators = new Set(rows.map((row) => row.creator.toLowerCase())).size;
@@ -85,8 +88,8 @@ export default async function LeaderboardPage() {
             <dd>{creators}</dd>
           </div>
           <div className="stat">
-            <dt>Value held</dt>
-            <dd>${totalTvl.toFixed(2)}</dd>
+            <dt>Money in</dt>
+            <dd>${totalIn.toFixed(2)}</dd>
           </div>
           <div className="stat">
             <dt>Mints</dt>

@@ -21,18 +21,35 @@ export function usePrices(
   useEffect(() => {
     let cancelled = false;
 
+    /*
+     * Asked for in small groups and merged, never replaced.
+     *
+     * One request covering every token in a long list is all-or-nothing: the aggregator
+     * rate limits, a single failure leaves whole baskets unpriced, and a page that
+     * replaced its state would blank prices it already had. Groups fail independently,
+     * and what has already been priced survives.
+     */
     const read = async () => {
-      try {
-        const query = tokens && tokens.length > 0 ? `?tokens=${tokens.join(",")}` : "";
-        const response = await fetch(`/api/prices${query}`);
-        if (!response.ok) return;
-        const body = (await response.json()) as {prices?: Prices};
-        if (!cancelled && body.prices) {
-          setPrices(body.prices);
+      const groups: string[][] = [];
+      if (tokens && tokens.length > 0) {
+        for (let from = 0; from < tokens.length; from += 10) groups.push(tokens.slice(from, from + 10));
+      } else {
+        groups.push([]);
+      }
+
+      for (const group of groups) {
+        if (cancelled) return;
+        try {
+          const query = group.length > 0 ? `?tokens=${group.join(",")}` : "";
+          const response = await fetch(`/api/prices${query}`);
+          if (!response.ok) continue;
+          const body = (await response.json()) as {prices?: Prices};
+          if (cancelled || !body.prices) continue;
+          setPrices((current) => ({...current, ...body.prices}));
           setReady(true);
+        } catch {
+          // Prices are decoration; the page works without them.
         }
-      } catch {
-        // Prices are decoration; the page works without them.
       }
     };
 

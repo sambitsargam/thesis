@@ -136,29 +136,33 @@ export default function ProofOfReserve(props: Props) {
       </div>
 
       <div className="card" style={{marginTop: 12}}>
-        <div className="preview-title">Verify this yourself</div>
-
-        {first && (
-          <Copyable
-            label={`Ask a public node what the basket holds of ${first.ticker}`}
-            command={`cast call ${first.token} \\\n  "balanceOf(address)(uint256)" ${props.basket} \\\n  --rpc-url ${props.rpcUrl}`}
-          />
-        )}
-
-        <Copyable
-          label="Or ask the basket what it holds, and for whom"
-          command={
-            `cast call ${props.basket} \\\n  "constituents()(address[])" \\\n  --rpc-url ${props.rpcUrl}\n\n` +
-            `cast call ${props.basket} \\\n  "totalSupply()(uint256)" \\\n  --rpc-url ${props.rpcUrl}`
-          }
-        />
-
         <div className="row">
-          <span>In a browser</span>
+          <span>Verify this yourself</span>
           <a className="link" href={`${props.explorerBase}address/${props.basket}`}>
             Open the basket on OKLink →
           </a>
         </div>
+
+        {/*
+          Folded away by default. The commands are the point of this panel, but most
+          people will check the balances on the explorer, and an open block of shell
+          sits heavily on the page for the few who want it.
+        */}
+        <details className="verify-details">
+          <summary>Or read it from a node yourself</summary>
+
+          {first && (
+            <Copyable
+              label={`What the basket holds of ${first.ticker}`}
+              command={`cast call ${first.token} "balanceOf(address)(uint256)" ${props.basket} --rpc-url ${props.rpcUrl}`}
+            />
+          )}
+
+          <Copyable
+            label="Every constituent it is supposed to hold"
+            command={`cast call ${props.basket} "constituents()(address[])" --rpc-url ${props.rpcUrl}`}
+          />
+        </details>
       </div>
 
       <div className="card" style={{marginTop: 12}}>

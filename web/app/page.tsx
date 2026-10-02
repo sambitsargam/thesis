@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {formatUnits} from "viem";
 import {XSTOCK_CATALOG} from "@thesis/shared/catalog";
-import {loadBaskets, valueBaskets} from "./baskets";
+import {loadBaskets} from "./baskets";
 import {deployment, explorer} from "./chain";
 import BasketGallery from "./BasketGallery";
 import HeroDiagram from "./HeroDiagram";
@@ -14,7 +14,6 @@ const STRIP_TICKERS = ["NVDAx", "AMDx", "TSMx", "ASMLx", "SPCXx", "TSLAx"];
 
 export default async function Home() {
   const baskets = await loadBaskets();
-  const valuations = await valueBaskets(baskets);
 
   const cards = baskets.map((basket) => ({
     address: basket.address,
@@ -31,8 +30,10 @@ export default async function Home() {
   // The two figures that make the launchpad claim concrete: how many people launched
   // something, and how much real money those baskets hold.
   const creators = new Set(baskets.map((basket) => basket.creator.toLowerCase())).size;
-  const valueHeld = baskets.reduce(
-    (sum, basket) => sum + (valuations.get(basket.address)?.tvlUsd ?? 0),
+  // Read from the baskets' own counters rather than priced: the home page must paint at
+  // the speed of the chain, not of the aggregator.
+  const moneyIn = baskets.reduce(
+    (sum, basket) => sum + Number(formatUnits(basket.counters?.quoteIn ?? 0n, 6)),
     0
   );
 
@@ -80,9 +81,9 @@ export default async function Home() {
             </dd>
           </div>
           <div className="stat">
-            <dt>Value held</dt>
+            <dt>Money in</dt>
             <dd>
-              <AnimatedNumber value={valueHeld} decimals={2} prefix="$" />
+              <AnimatedNumber value={moneyIn} decimals={2} prefix="$" />
             </dd>
           </div>
           <div className="stat">

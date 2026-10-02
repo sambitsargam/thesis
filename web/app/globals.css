@@ -1159,9 +1159,24 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   font-size: 0.76rem;
   line-height: 1.6;
   color: var(--ink-dim);
-  overflow-x: auto;
-  white-space: pre;
+  /* Wraps rather than scrolls: a command that runs off the edge reads as broken, and
+     shell line-continuations look like stray characters to anyone not in a terminal. */
+  white-space: pre-wrap;
+  word-break: break-all;
 }
+
+.verify-details { margin-top: 14px; }
+.verify-details > summary {
+  cursor: pointer;
+  color: var(--ink-dim);
+  font-size: 0.86rem;
+  list-style: none;
+}
+.verify-details > summary::-webkit-details-marker { display: none; }
+.verify-details > summary::before { content: "▸ "; color: var(--muted); }
+.verify-details[open] > summary::before { content: "▾ "; }
+.verify-details > summary:hover { color: var(--accent); }
+.verify-details[open] > summary { margin-bottom: 12px; }
 
 /* ---------------------------------------------------------- market session */
 

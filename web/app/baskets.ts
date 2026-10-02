@@ -1,8 +1,6 @@
 import type {Address} from "viem";
-import {formatUnits} from "viem";
 import {basketCountersAbi, erc20Abi, thesisBasketAbi, thesisFactoryAbi} from "@thesis/shared";
 import {deployment, publicClient} from "./chain";
-import {priceTokens} from "./prices";
 
 /** What a basket holds of one constituent, right now. */
 export interface Holding {
@@ -31,11 +29,6 @@ export interface BasketSummary {
   constituents: readonly Address[];
   holdings: Holding[];
   counters: Counters | null;
-}
-
-/** A basket's live USD value, or null when any constituent could not be priced. */
-export interface Valuation {
-  tvlUsd: number | null;
 }
 
 async function loadBasket(address: Address, factory: Address, version: 1 | 2): Promise<BasketSummary> {
@@ -134,30 +127,4 @@ export async function loadBaskets(): Promise<BasketSummary[]> {
   );
 
   return sets.flat();
-}
-
-/**
- * What each basket's holdings are worth, in USD.
- *
- * Returns null for a basket whose constituents could not all be priced, because a
- * partial sum understates the basket and would rank it below baskets worth less.
- */
-export async function valueBaskets(baskets: BasketSummary[]): Promise<Map<Address, Valuation>> {
-  const tokens = [...new Set(baskets.flatMap((b) => b.holdings.map((h) => h.token)))];
-  const prices = await priceTokens(tokens).catch(() => ({}) as Record<string, number>);
-
-  const valued = new Map<Address, Valuation>();
-  for (const basket of baskets) {
-    let tvlUsd: number | null = 0;
-    for (const holding of basket.holdings) {
-      const price = prices[holding.token.toLowerCase()];
-      if (price === undefined) {
-        tvlUsd = null;
-        break;
-      }
-      tvlUsd += Number(formatUnits(holding.balance, 18)) * price;
-    }
-    valued.set(basket.address, {tvlUsd});
-  }
-  return valued;
 }
