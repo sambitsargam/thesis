@@ -232,10 +232,10 @@ export default async function Home() {
             <div className="flow-step">
               <span className="flow-num">5</span>
               <div>
-                <div className="flow-title">Sell back, your way</div>
+                <div className="flow-title">Sell, whichever way suits you</div>
                 <div className="flow-body">
-                  Redeem in kind and take the equities out, or sell the whole position back
-                  to USD₮0 in a single transaction.
+                  Take the equities out and hold them yourself, or sell the whole position
+                  back to USD₮0 in one transaction.
                 </div>
               </div>
             </div>

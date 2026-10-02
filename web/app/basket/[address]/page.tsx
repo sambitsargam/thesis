@@ -176,25 +176,25 @@ export default async function BasketPage({params}: {params: Promise<{address: st
 
         <section className="section">
           <div className="section-head">
-            <h2>Mechanics</h2>
+            <h2>How this basket works</h2>
           </div>
           <Reveal>
             <div className="card">
               <div className="row">
                 <span>Backing</span>
-                <span>Fully backed — the contract holds the real tokenized equities</span>
+                <span>The contract holds the real tokenized equities, one for one</span>
               </div>
               <div className="row">
                 <span>Redemption</span>
-                <span>Burn shares, receive the underlying pro rata, no price needed</span>
+                <span>Sell your shares back for your exact portion of what it holds</span>
               </div>
               <div className="row">
                 <span>Rebalance</span>
-                <span>Agent-triggered; value cannot leave the basket</span>
+                <span>The agent can trade it back to equal weight. It cannot take anything out</span>
               </div>
               <div className="row">
                 <span>Control</span>
-                <span>No owner, no pause, no upgrade. Constituents fixed at deployment</span>
+                <span>Nobody owns it, nobody can pause it, and the holdings were set when it deployed</span>
               </div>
             </div>
           </Reveal>

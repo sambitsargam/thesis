@@ -32,19 +32,19 @@ type Payout = "quote" | "kind";
 type Phase = "idle" | "quoting" | "approving" | "sending" | "done";
 
 const MINT_STEPS = [
-  {key: "quoting" as const, label: "Pricing each leg through Onchain OS Trade"},
+  {key: "quoting" as const, label: "Pricing each equity through Onchain OS Trade"},
   {key: "approving" as const, label: "Approving USD₮0"},
-  {key: "sending" as const, label: "Buying constituents and minting shares"}
+  {key: "sending" as const, label: "Buying the equities and issuing your shares"}
 ];
 
 const REDEEM_STEPS = [
-  {key: "sending" as const, label: "Burning shares and returning the underlying"}
+  {key: "sending" as const, label: "Sending you your portion of each equity"}
 ];
 
 const SELL_STEPS = [
-  {key: "quoting" as const, label: "Pricing each constituent back to USD₮0"},
+  {key: "quoting" as const, label: "Pricing every equity back to USD₮0"},
   {key: "approving" as const, label: "Approving your shares"},
-  {key: "sending" as const, label: "Burning shares and selling the underlying"}
+  {key: "sending" as const, label: "Selling the equities and sending you USD₮0"}
 ];
 
 
@@ -335,17 +335,17 @@ export default function ActionPanel(props: Props) {
             setAmount("1");
           }}
         >
-          Sell back
+          Sell
         </button>
       </div>
 
       <div className="panel-body">
         <p className="panel-lede">
           {mode === "mint"
-            ? "One transaction buys every constituent at market and holds it."
+            ? "One transaction buys every equity in the basket and holds them for you."
             : sellsForCash
-              ? "Burn shares, sell every constituent at market, and take USD₮0 out — in one transaction."
-              : "Burn shares and take the underlying equities out, pro rata. No price needed, no slippage."}
+              ? "Sells every equity in the basket at market and sends you USD₮0, in one transaction."
+              : "Sends you your share of each equity the basket holds. No price involved, so nothing to slip."}
         </p>
 
         {mode === "mint" && <SessionBadge />}
@@ -360,7 +360,7 @@ export default function ActionPanel(props: Props) {
                 reset();
               }}
             >
-              Receive USD₮0
+              Take USD₮0
             </button>
             <button
               className="pill"
@@ -370,7 +370,7 @@ export default function ActionPanel(props: Props) {
                 reset();
               }}
             >
-              Receive the equities
+              Take the equities
             </button>
           </div>
         )}
@@ -383,7 +383,7 @@ export default function ActionPanel(props: Props) {
           <>
             <div className="field" style={{marginTop: 18}}>
               <label htmlFor="amount">
-                {mode === "mint" ? "You pay" : "You burn"}
+                {mode === "mint" ? "You pay" : "You sell"}
                 {available && <span className="avail"> · {available} available</span>}
               </label>
               <div className="input-row">
@@ -416,7 +416,7 @@ export default function ActionPanel(props: Props) {
 
             {preview && (
               <div className="preview">
-                <div className="preview-title">You receive</div>
+                <div className="preview-title">You get</div>
                 {preview.map((row) => (
                   <div className="row" key={row.ticker}>
                     <span>{row.ticker}</span>
@@ -436,8 +436,8 @@ export default function ActionPanel(props: Props) {
                   : mode === "mint"
                     ? `Buy ${props.symbol}`
                     : sellsForCash
-                      ? `Sell for USD₮0`
-                      : `Redeem ${props.symbol}`}
+                      ? "Sell for USD₮0"
+                      : "Take out the equities"}
             </button>
           </>
         )}
@@ -455,15 +455,20 @@ export default function ActionPanel(props: Props) {
 
         {txHash && (
           <div className="receipt">
+            {/* The same words the button used, so the receipt confirms the thing asked for. */}
             <div className="headline">
-              {mode === "mint" ? `Bought ${props.symbol}` : `Redeemed ${props.symbol}`}
+              {mode === "mint"
+                ? `Bought ${props.symbol}`
+                : sellsForCash
+                  ? "Sold for USD₮0"
+                  : "Took out the equities"}
             </div>
             <p className="status" style={{marginTop: 6}}>
               {mode === "mint"
                 ? "Your shares are backed by the equities the basket just bought. Add the token to see them in your wallet."
                 : sellsForCash
-                  ? "USD₮0 is back in your wallet."
-                  : "The underlying equities are in your wallet now. Most wallets hide unknown tokens — add them to see the balances."}
+                  ? "The USD₮0 is in your wallet."
+                  : "The equities are in your wallet now. Most wallets hide tokens they do not know — add them to see the balances."}
             </p>
 
             {mode === "mint" && (

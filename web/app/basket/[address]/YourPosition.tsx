@@ -78,7 +78,7 @@ export default function YourPosition({
   return (
     <section className="section">
       <div className="section-head">
-        <h2>Your position</h2>
+        <h2>What you own</h2>
         <span className="note">
           {account.slice(0, 6)}…{account.slice(-4)}
         </span>
@@ -93,8 +93,8 @@ export default function YourPosition({
             </div>
           ) : owned === 0 ? (
             <p className="panel-lede" style={{margin: 0}}>
-              You don&rsquo;t hold {symbol} yet. Buy some above and your claim on the
-              underlying equities appears here.
+              Buy {symbol} above and the equities behind your shares are listed here, by
+              the amount you own of each.
             </p>
           ) : (
             <>
@@ -103,22 +103,22 @@ export default function YourPosition({
                   <div className="position-value tnum">
                     <Flash watch={shares}>{owned.toFixed(6)}</Flash>
                   </div>
-                  <div className="position-label">{symbol} held</div>
+                  <div className="position-label">{symbol} in your wallet</div>
                 </div>
                 <div>
                   <div className="position-value tnum">{share.toFixed(2)}%</div>
-                  <div className="position-label">of all shares</div>
+                  <div className="position-label">of the whole basket</div>
                 </div>
                 <div style={{textAlign: "right"}}>
                   <div className="position-value tnum accent">
                     {showUsd ? usd(positionValue) : "—"}
                   </div>
-                  <div className="position-label">market value</div>
+                  <div className="position-label">what it is worth</div>
                 </div>
               </div>
 
               <div className="position-claim">
-                <div className="preview-title">Your claim on the underlying</div>
+                <div className="preview-title">The equities behind your shares</div>
                 {claims.map((claim) => (
                   <div className="row" key={claim.ticker}>
                     <span>{claim.ticker}</span>
