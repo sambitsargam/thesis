@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {useMemo, useState} from "react";
-import {Reveal} from "../motion";
 import {usePrices} from "../usePrices";
 import {useWallet} from "../WalletProvider";
 
@@ -26,11 +25,11 @@ export interface Row {
 type SortKey = "tvlUsd" | "moneyIn" | "mints" | "creatorEarned";
 type CounterKey = Exclude<SortKey, "tvlUsd">;
 
-const SORTS: {key: SortKey; label: string}[] = [
+const COLUMNS: {key: SortKey; label: string}[] = [
   {key: "tvlUsd", label: "Value held"},
   {key: "moneyIn", label: "Money in"},
   {key: "mints", label: "Mints"},
-  {key: "creatorEarned", label: "Creator earned"}
+  {key: "creatorEarned", label: "Creator earns"}
 ];
 
 function usd(n: number): string {
@@ -46,6 +45,25 @@ function usd(n: number): string {
 
   return `$${n.toFixed(2)}`;
 }
+
+const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
+
+/*
+ * The issuer's name is the site, not the row.
+ *
+ * On-chain every basket is called "Thesis <theme>", so printing it whole repeats the
+ * wordmark sixteen times and pushes the part that differs off to the right.
+ */
+const title = (name: string) =>
+  name
+    .replace(/^Thesis\s+/i, "")
+    // Every basket on Thesis is equal weight, so printing it per row says nothing. The
+    // table states it once, above.
+    .replace(/,?\s*equal weight$/i, "");
+
+/** True when the theme line would only repeat the name back, trimming both the same way. */
+const sameAsName = (name: string, theme: string) =>
+  title(name).trim().toLowerCase() === title(theme).trim().toLowerCase();
 
 export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; explorerBase: string}) {
   const {account} = useWallet();
@@ -93,85 +111,88 @@ export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; exp
   });
 
   return (
-    <>
-      <div className="pills" style={{marginBottom: 16}}>
-        {SORTS.map((option) => (
-          <button
-            key={option.key}
-            className="pill"
-            aria-pressed={sort === option.key}
-            onClick={() => setSort(option.key)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+    <div className="board-wrap">
+      <table className="board">
+        <thead>
+          <tr>
+            <th scope="col" className="col-rank">
+              #
+            </th>
+            <th scope="col">Basket</th>
+            {COLUMNS.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                className="col-num"
+                aria-sort={sort === column.key ? "descending" : "none"}
+              >
+                {/* The header is the control: sorting a table belongs in its own headings. */}
+                <button className="col-sort" onClick={() => setSort(column.key)}>
+                  {column.label}
+                </button>
+              </th>
+            ))}
+            <th scope="col" className="col-act">
+              <span className="visually-hidden">Actions</span>
+            </th>
+          </tr>
+        </thead>
 
-      <div className="board">
-        {ranked.map((row, i) => {
-          const mine = Boolean(account) && row.creator.toLowerCase() === account!.toLowerCase();
-          return (
-            <Reveal key={row.address} delay={i * 50}>
-              <div className="board-row">
-                <div className="board-rank">{i + 1}</div>
+        <tbody>
+          {ranked.map((row, i) => {
+            const mine = Boolean(account) && row.creator.toLowerCase() === account!.toLowerCase();
+            const value = valueOf(row);
 
-                <div className="board-main">
+            return (
+              <tr key={row.address}>
+                <td className="col-rank">{i + 1}</td>
+
+                <td>
                   <Link className="board-name" href={`/basket/${row.address}`}>
-                    {row.name}
-                    {mine && <span className="mine">Yours</span>}
+                    {title(row.name)}
+                    {mine && <span className="mine">yours</span>}
                   </Link>
-                  <div className="board-theme">&ldquo;{row.theme}&rdquo;</div>
-                  <div className="pills" style={{marginTop: 10}}>
-                    <span className="pill">{row.symbol}</span>
-                    {row.tickers.map((ticker) => (
-                      <span className="pill" key={ticker}>
-                        {ticker}
-                      </span>
-                    ))}
-                    {row.version === 1 && <span className="pill">V1</span>}
+                  {!sameAsName(row.name, row.theme) && (
+                    <div className="board-theme">&ldquo;{row.theme}&rdquo;</div>
+                  )}
+                  <div className="board-meta">
+                    {row.tickers.join(" · ") || "—"}
+                    <span className="board-sep">
+                      {row.feeBps > 0 ? `${(row.feeBps / 100).toFixed(2)}% fee` : "no fee"}
+                    </span>
+                    <span className="board-sep">
+                      by{" "}
+                      <a className="mono link" href={`${explorerBase}address/${row.creator}`}>
+                        {short(row.creator)}
+                      </a>
+                    </span>
+                    {row.version === 1 && <span className="board-sep">v1 basket</span>}
                   </div>
-                </div>
+                </td>
 
-                <dl className="board-stats">
-                  <div className="stat">
-                    <dt>Value held</dt>
-                    <dd className="tnum">
-                      {valueOf(row) === null ? "—" : usd(valueOf(row)!)}
-                    </dd>
-                  </div>
-                  <div className="stat">
-                    <dt>Money in</dt>
-                    <dd className="tnum">{row.moneyIn === null ? "—" : usd(row.moneyIn)}</dd>
-                  </div>
-                  <div className="stat">
-                    <dt>Mints</dt>
-                    <dd className="tnum">{row.mints === null ? "—" : row.mints}</dd>
-                  </div>
-                  <div className="stat">
-                    <dt>Creator earned</dt>
-                    <dd className="tnum">
-                      {row.creatorEarned === null
-                        ? "—"
-                        : row.creatorEarned === 0
-                          ? `${row.feeBps / 100}% fee`
-                          : usd(row.creatorEarned)}
-                    </dd>
-                  </div>
-                </dl>
+                <td className={`col-num${sort === "tvlUsd" ? " col-sorted" : ""}`}>
+                  {value === null ? "—" : usd(value)}
+                </td>
+                <td className={`col-num${sort === "moneyIn" ? " col-sorted" : ""}`}>
+                  {row.moneyIn === null ? "—" : usd(row.moneyIn)}
+                </td>
+                <td className={`col-num${sort === "mints" ? " col-sorted" : ""}`}>
+                  {row.mints === null ? "—" : row.mints}
+                </td>
+                <td className={`col-num${sort === "creatorEarned" ? " col-sorted" : ""}`}>
+                  {row.creatorEarned === null ? "—" : usd(row.creatorEarned)}
+                </td>
 
-                <div className="board-foot">
-                  <a className="mono link" href={`${explorerBase}address/${row.creator}`}>
-                    {row.creator.slice(0, 6)}…{row.creator.slice(-4)}
-                  </a>
+                <td className="col-act">
                   <Link className="chip" href={`/launch?from=${row.address}`}>
-                    Fork →
+                    Fork
                   </Link>
-                </div>
-              </div>
-            </Reveal>
-          );
-        })}
-      </div>
-    </>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

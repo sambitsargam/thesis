@@ -72,56 +72,58 @@ export default async function LeaderboardPage() {
             Every index anyone has launched
           </h1>
           <p>
-            Ranked by what each basket actually holds. Every number here is read from the
-            contracts themselves — the totals are kept on chain by the baskets, not by a
-            database we run, so you can check any of them yourself.
+            Anyone can add one. Every figure below is read from the contracts themselves —
+            the baskets keep their own totals on chain, so there is no database of ours to
+            trust, and nothing here that you cannot check.
           </p>
         </Reveal>
 
-        <dl className="stats">
-          <div className="stat">
-            <dt>Baskets</dt>
-            <dd>{rows.length}</dd>
+        <div className="lead">
+          <div className="lead-figure">
+            <div className="figure">{rows.length}</div>
+            <div className="figure-label">
+              indices launched, by anyone who wanted one
+            </div>
           </div>
-          <div className="stat">
-            <dt>Creators</dt>
-            <dd>{creators}</dd>
-          </div>
-          <div className="stat">
-            <dt>Money in</dt>
-            <dd>${totalIn.toFixed(2)}</dd>
-          </div>
-          <div className="stat">
-            <dt>Mints</dt>
-            <dd>{counted.length === 0 ? "—" : totalMints}</dd>
-          </div>
-        </dl>
+
+          <dl className="stats">
+            <div className="stat">
+              <dt>Creators</dt>
+              <dd>{creators}</dd>
+            </div>
+            <div className="stat">
+              <dt>Paid in</dt>
+              <dd>${totalIn.toFixed(2)}</dd>
+            </div>
+            <div className="stat">
+              <dt>Purchases</dt>
+              <dd>{counted.length === 0 ? "—" : totalMints}</dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
-      {topCreator && (
-        <section className="section" style={{marginTop: 8, marginBottom: 0}}>
-          <Reveal>
-            <div className="card">
-              <div className="row">
-                <span>Top creator</span>
-                <span>
-                  <a className="mono link" href={explorer(`address/${topCreator[0]}`)}>
-                    {topCreator[0].slice(0, 6)}…{topCreator[0].slice(-4)}
-                  </a>{" "}
-                  — ${topCreator[1].earned.toFixed(4)} earned across{" "}
-                  {topCreator[1].baskets} basket{topCreator[1].baskets === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
-          </Reveal>
-        </section>
-      )}
-
       <section className="section" style={{marginTop: 8}}>
+        <p className="finding">
+          Every basket holds its constituents at equal weight, fixed when it was deployed.
+        </p>
+
+        {topCreator && (
+          <p className="finding">
+            Most earned so far:{" "}
+            <a className="mono link" href={explorer(`address/${topCreator[0]}`)}>
+              {topCreator[0].slice(0, 6)}…{topCreator[0].slice(-4)}
+            </a>{" "}
+            has taken ${topCreator[1].earned.toFixed(4)} in fees from{" "}
+            {topCreator[1].baskets} basket{topCreator[1].baskets === 1 ? "" : "s"} they
+            launched.
+          </p>
+        )}
+
         {rows.length === 0 ? (
           <div className="card">
             <div className="card-theme">
-              No baskets yet. <Link href="/launch">Launch the first one →</Link>
+              Nobody has launched one yet. <Link href="/launch">Be the first →</Link>
             </div>
           </div>
         ) : (
@@ -131,7 +133,7 @@ export default async function LeaderboardPage() {
 
       <section className="section">
         <div className="section-head">
-          <h2>How these numbers are made</h2>
+          <h2>Where these numbers come from</h2>
         </div>
         <Reveal>
           <div className="card">
@@ -155,7 +157,7 @@ export default async function LeaderboardPage() {
               </span>
             </div>
             <div className="row">
-              <span>Creator earned</span>
+              <span>Creator earns</span>
               <span>
                 <span className="mono">totalCreatorFees</span> — equal to what the creator actually received
               </span>
