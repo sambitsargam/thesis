@@ -4,6 +4,7 @@ import {useState} from "react";
 import {encodeFunctionData} from "viem";
 import {thesisBasketAbi} from "@thesis/shared";
 import {useWallet} from "../../WalletProvider";
+import {sendPadded} from "../../sendPadded";
 
 interface Leg {
   tokenIn: `0x${string}`;
@@ -84,7 +85,8 @@ export default function RebalancePanel(props: Props) {
           }))
         ]
       });
-      const hash = await client.sendTransaction({account, chain: null, to: props.basket, data});
+      // Same nested-swap shape as a mint, so the same gas headroom applies.
+      const hash = await sendPadded(client, account, props.basket, data);
       setTxHash(hash);
       setLegs(null);
       props.onRebalanced?.();

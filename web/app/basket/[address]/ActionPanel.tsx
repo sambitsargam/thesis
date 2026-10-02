@@ -4,6 +4,7 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import {encodeFunctionData, formatUnits, parseUnits} from "viem";
 import {erc20Abi, legAmounts, splitFee, thesisBasketAbi, thesisZapAbi} from "@thesis/shared";
 import SessionBadge from "../../SessionBadge";
+import {sendPadded} from "../../sendPadded";
 import {useWallet} from "../../WalletProvider";
 
 const QUOTE_DECIMALS = 6;
@@ -24,33 +25,6 @@ interface Props {
   feeBps: bigint;
   supplyIsZero: boolean;
   onChanged?: () => void;
-}
-
-/**
- * Sends with a third more gas than the wallet estimates.
- *
- * A mint is one nested swap per constituent, and estimation runs tight enough that a
- * four-leg basket has reverted with OutOfGas after every swap already filled. Unused gas
- * is refunded, so the headroom is free; a failed mint in front of someone is not.
- */
-async function sendPadded(
-  client: NonNullable<ReturnType<typeof useWallet>["client"]>,
-  account: `0x${string}`,
-  to: `0x${string}`,
-  data: `0x${string}`
-): Promise<`0x${string}`> {
-  const estimate = await client
-    .request({method: "eth_estimateGas", params: [{from: account, to, data}]})
-    .then((value) => BigInt(value as string))
-    .catch(() => undefined);
-
-  return client.sendTransaction({
-    account,
-    chain: null,
-    to,
-    data,
-    ...(estimate ? {gas: (estimate * 4n) / 3n} : {})
-  });
 }
 
 type Mode = "mint" | "redeem";
