@@ -1271,64 +1271,112 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 
 /* -------------------------------------------------------- proof of reserve */
 
-.reserve { padding: 14px 0; border-top: 1px solid var(--line-soft); }
-.reserve:first-of-type { border-top: 0; padding-top: 0; }
+/*
+ * Evidence, set like a ledger.
+ *
+ * Both the scaled balance and the raw base units are printed, because the point of the
+ * panel is that nothing here has to be taken on trust — including our own rounding.
+ */
 
-.reserve-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.reserve-ticker { font-weight: 620; letter-spacing: -0.01em; }
-.reserve-amount { font-size: 1.02rem; font-weight: 600; }
+.claim {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.22rem;
+  line-height: 1.45;
+  max-width: 62ch;
+  margin: 18px 0 22px;
+}
 
-.reserve-foot {
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+.ledger thead th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--ink-2);
+  font-size: 0.94rem;
+  padding: 0 14px 9px;
+  border-bottom: 1px solid var(--ink);
+  white-space: nowrap;
+}
+
+.ledger thead th:first-child,
+.ledger tbody th:first-child { padding-left: 0; }
+.ledger thead th:last-child,
+.ledger tbody td:last-child { padding-right: 0; }
+
+.ledger tbody th,
+.ledger tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-weight: 400;
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.ledger-ticker { font-weight: 600 !important; white-space: nowrap; }
+.ledger-amount { font-size: 1.06rem; color: var(--ink); }
+.ledger .mono { font-size: 0.86rem; color: var(--ink-2); }
+
+.verify {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.verify-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
-  margin-top: 6px;
-  font-size: 0.76rem;
-}
-
-.reserve-raw { color: var(--muted); }
-
-.verify + .verify { margin-top: 14px; }
-.verify-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink-dim);
-  font-size: 0.88rem;
-  margin-bottom: 8px;
+  color: var(--ink-2);
 }
 
 .verify-code {
   margin: 0;
   padding: 12px 14px;
-  background: var(--surface-sunk, var(--bg));
-  border: 1px solid var(--line-soft);
-  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.76rem;
+  font-size: 0.84rem;
   line-height: 1.6;
-  color: var(--ink-dim);
-  /* Wraps rather than scrolls: a command that runs off the edge reads as broken, and
-     shell line-continuations look like stray characters to anyone not in a terminal. */
+  color: var(--ink-2);
+  /* Wraps rather than scrolls: a command that runs off the edge reads as broken. */
   white-space: pre-wrap;
   word-break: break-all;
 }
 
+.verify + .verify { margin-top: 14px; }
+
 .verify-details { margin-top: 14px; }
 .verify-details > summary {
   cursor: pointer;
-  color: var(--ink-dim);
-  font-size: 0.86rem;
+  color: var(--ink-2);
+  font-size: 0.94rem;
   list-style: none;
 }
 .verify-details > summary::-webkit-details-marker { display: none; }
-.verify-details > summary::before { content: "▸ "; color: var(--muted); }
+.verify-details > summary::before { content: "▸ "; }
 .verify-details[open] > summary::before { content: "▾ "; }
-.verify-details > summary:hover { color: var(--accent); }
+.verify-details > summary:hover { color: var(--ink); }
 .verify-details[open] > summary { margin-bottom: 12px; }
+
+.claim-foot {
+  margin: 22px 0 0;
+  color: var(--ink-2);
+  max-width: 68ch;
+  font-size: 0.98rem;
+}
+
+/* A phone has no room for two renderings of the same number. */
+@media (max-width: 700px) {
+  .ledger thead th:nth-child(3),
+  .ledger tbody td:nth-child(3) { display: none; }
+}
 
 /* ---------------------------------------------------------- market session */
 

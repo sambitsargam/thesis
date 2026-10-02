@@ -107,37 +107,50 @@ export default function ProofOfReserve(props: Props) {
       <div className="section-head">
         <h2>Proof of reserve</h2>
         <span className="note">
-          Read at block <span className="tnum">{props.blockNumber}</span>
+          read at block <span className="tnum">{Number(props.blockNumber).toLocaleString("en-US")}</span>
         </span>
       </div>
 
-      <div className="card">
-        <p className="card-theme" style={{marginBottom: 16}}>
-          Every {props.symbol} share is a claim on the tokens below, held by the basket
-          contract itself. These are balances, not valuations: no oracle, no price feed and
-          no number we publish stands between you and the holdings.
-        </p>
+      <p className="claim">
+        These are the tokens the contract is holding right now. Not a valuation, not a
+        published NAV, and no oracle in the path — balances, which anyone can read back
+        themselves.
+      </p>
 
-        {props.reserves.map((reserve) => (
-          <div className="reserve" key={reserve.token}>
-            <div className="reserve-head">
-              <span className="reserve-ticker">{reserve.ticker}</span>
-              <span className="tnum reserve-amount">{Number(reserve.amount).toFixed(9)}</span>
-            </div>
-            <div className="reserve-foot">
-              <a className="mono link" href={`${props.explorerBase}token/${reserve.token}`}>
-                {reserve.token}
-              </a>
-              {/* Base units as well: the scaled figure above is this number, divided. */}
-              <span className="mono tnum reserve-raw">{reserve.raw}</span>
-            </div>
-          </div>
-        ))}
+      <div className="board-wrap">
+        <table className="ledger">
+          <thead>
+            <tr>
+              <th scope="col">Holding</th>
+              <th scope="col" className="col-num">Balance</th>
+              <th scope="col" className="col-num">In base units</th>
+              <th scope="col">Token contract</th>
+            </tr>
+          </thead>
+          <tbody>
+            {props.reserves.map((reserve) => (
+              <tr key={reserve.token}>
+                <th scope="row" className="ledger-ticker">
+                  {reserve.ticker}
+                </th>
+                <td className="col-num ledger-amount">{Number(reserve.amount).toFixed(9)}</td>
+                {/* The scaled figure above is this number, divided. Both are shown so
+                    neither has to be taken on trust. */}
+                <td className="col-num mono">{reserve.raw}</td>
+                <td>
+                  <a className="mono link" href={`${props.explorerBase}token/${reserve.token}`}>
+                    {reserve.token.slice(0, 10)}…{reserve.token.slice(-6)}
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <div className="card" style={{marginTop: 12}}>
-        <div className="row">
-          <span>Verify this yourself</span>
+      <div className="verify">
+        <div className="verify-head">
+          <span>Check it against the chain</span>
           <a className="link" href={`${props.explorerBase}address/${props.basket}`}>
             Open the basket on OKLink →
           </a>
@@ -165,16 +178,11 @@ export default function ProofOfReserve(props: Props) {
         </details>
       </div>
 
-      <div className="card" style={{marginTop: 12}}>
-        <div className="row">
-          <span>Why this matters</span>
-          <span>
-            A Thesis basket is a plain ERC-20 whose backing is readable on chain. Any
-            lending market on X Layer can price it as collateral without integrating with
-            us, and without taking our word for what it holds.
-          </span>
-        </div>
-      </div>
+      <p className="claim-foot">
+        Because the backing is readable on chain, a Thesis basket can be priced as
+        collateral by any lending market on X Layer — with no integration on either side,
+        and nobody taking our word for what it holds.
+      </p>
     </section>
   );
 }
