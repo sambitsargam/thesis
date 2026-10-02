@@ -144,13 +144,20 @@ export default async function BasketPage({params}: {params: Promise<{address: st
                   : ", who charges nothing and controls nothing."}
               </p>
             )}
-            <div className="controls" style={{marginTop: 18}}>
-              <ShareButton name={name} theme={theme} />
-              <Link className="chip" href={`/launch?from=${basket}`}>
-                Fork this basket
+            {/*
+              Fork is the action that makes this a launchpad rather than a fund, so it is
+              a button here and not a chip among chips. Sharing is secondary to it.
+            */}
+            <div className="controls" style={{marginTop: 22}}>
+              <Link className="fork-cta" href={`/launch?from=${basket}`}>
+                Fork this basket →
               </Link>
-              <span className="avail">Anyone with the link can mint it</span>
+              <ShareButton name={name} theme={theme} />
             </div>
+            <p className="controls-note">
+              Forking copies these holdings into your own basket, with your own fee. This
+              one is untouched by it, and anyone with the link can buy either.
+            </p>
           </Reveal>
         </section>
 

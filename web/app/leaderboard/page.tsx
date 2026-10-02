@@ -28,7 +28,7 @@ export default async function LeaderboardPage() {
     // and the page paints as fast as the chain answers.
     holdings: basket.holdings.map((holding) => ({
       token: holding.token,
-      amount: Number(formatUnits(holding.balance, 18))
+      amount: holding.balance === null ? null : Number(formatUnits(holding.balance, 18))
     })),
     creator: basket.creator,
     version: basket.version,

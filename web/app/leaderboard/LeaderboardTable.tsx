@@ -18,8 +18,8 @@ export interface Row {
   moneyIn: number | null;
   mints: number | null;
   creatorEarned: number | null;
-  /** Live balances, priced in the browser rather than on the server. */
-  holdings: {token: string; amount: number}[];
+  /** Live balances, priced in the browser. A null amount means the node refused it. */
+  holdings: {token: string; amount: number | null}[];
 }
 
 type SortKey = "tvlUsd" | "moneyIn" | "mints" | "creatorEarned";
@@ -90,7 +90,7 @@ export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; exp
       let total: number | null = 0;
       for (const holding of row.holdings) {
         const price = prices[holding.token.toLowerCase()];
-        if (price === undefined) {
+        if (price === undefined || holding.amount === null) {
           total = null;
           break;
         }

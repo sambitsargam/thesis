@@ -112,9 +112,9 @@ export default function ProofOfReserve(props: Props) {
       </div>
 
       <p className="claim">
-        These are the tokens the contract is holding right now. Not a valuation, not a
-        published NAV, and no oracle in the path — balances, which anyone can read back
-        themselves.
+        The holdings above are not a report of what this basket owns. They are its token
+        balances, read from the chain — no valuation we publish, no oracle in the path.
+        Here is the same thing in base units, and how to read it back yourself.
       </p>
 
       <div className="board-wrap">
@@ -122,8 +122,7 @@ export default function ProofOfReserve(props: Props) {
           <thead>
             <tr>
               <th scope="col">Holding</th>
-              <th scope="col" className="col-num">Balance</th>
-              <th scope="col" className="col-num">In base units</th>
+              <th scope="col" className="col-num">Balance in base units</th>
               <th scope="col">Token contract</th>
             </tr>
           </thead>
@@ -133,9 +132,8 @@ export default function ProofOfReserve(props: Props) {
                 <th scope="row" className="ledger-ticker">
                   {reserve.ticker}
                 </th>
-                <td className="col-num ledger-amount">{Number(reserve.amount).toFixed(9)}</td>
-                {/* The scaled figure above is this number, divided. Both are shown so
-                    neither has to be taken on trust. */}
+                {/* Exactly what `balanceOf` returns. The whole-token figure in the
+                    holdings table above is this number, divided. */}
                 <td className="col-num mono">{reserve.raw}</td>
                 <td>
                   <a className="mono link" href={`${props.explorerBase}token/${reserve.token}`}>

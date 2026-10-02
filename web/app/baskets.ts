@@ -6,7 +6,13 @@ import {deployment, publicClient} from "./chain";
 export interface Holding {
   token: Address;
   ticker: string;
-  balance: bigint;
+  /**
+   * Null when the node refused the read.
+   *
+   * Not zero: a basket whose balance could not be fetched holds an unknown amount, and
+   * reporting that as nothing would understate it on a page that ranks by value.
+   */
+  balance: bigint | null;
 }
 
 /** Lifetime totals kept by the basket itself. Absent on V1 baskets. */
@@ -59,12 +65,15 @@ async function loadBasket(address: Address, factory: Address, version: 1 | 2): P
         publicClient
           .readContract({address: token, abi: erc20Abi, functionName: "symbol"})
           .catch(() => "?"),
-        publicClient.readContract({
-          address: token,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [address]
-        })
+        // A refused balance must not cost the whole basket its place in the listing.
+        publicClient
+          .readContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [address]
+          })
+          .catch(() => null)
       ]);
       return {token, ticker, balance};
     })

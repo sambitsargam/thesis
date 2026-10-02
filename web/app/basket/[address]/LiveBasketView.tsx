@@ -2,8 +2,7 @@
 
 import {useState} from "react";
 import type {LiveBasket} from "../../api/basket/route";
-import Allocation from "../../Allocation";
-import {AnimatedNumber, Bar, Flash, Reveal} from "../../motion";
+import {AnimatedNumber, Flash} from "../../motion";
 import {usd, usePrices} from "../../usePrices";
 import {useLiveBasket} from "../../useLiveBasket";
 import ActionPanel from "./ActionPanel";
@@ -45,44 +44,46 @@ export default function LiveBasketView(props: Props) {
 
   return (
     <>
-      <dl className={`stats ${pulse ? "pulsing" : ""}`}>
-        <div className="stat">
-          <dt>Symbol</dt>
-          <dd>{props.symbol}</dd>
+      {/*
+        What this screen is for: what the basket is worth. That number leads; the rest
+        support it. "Symbol" and "each weighted" are gone — the title carries the symbol
+        and the holdings table carries the weights.
+      */}
+      <div className="lead">
+        <div className="lead-figure">
+          <div className="figure">
+            {showUsd ? <AnimatedNumber value={totalValue} decimals={2} prefix="$" /> : "—"}
+          </div>
+          <div className="figure-label">
+            held by the contract, priced through the routes a purchase would use
+          </div>
         </div>
-        <div className="stat">
-          <dt>Constituents</dt>
-          <dd>
-            <AnimatedNumber value={props.constituents.length} />
-          </dd>
-        </div>
-        <div className="stat">
-          <dt>Each weighted</dt>
-          <dd>
-            <AnimatedNumber value={weight} decimals={2} suffix="%" />
-          </dd>
-        </div>
-        <div className="stat">
-          <dt>Shares out</dt>
-          <dd>
-            <Flash watch={data.supply}>
-              <AnimatedNumber value={supply} decimals={supply === 0 ? 0 : 3} />
-            </Flash>
-          </dd>
-        </div>
-        <div className="stat">
-          <dt>NAV per share</dt>
-          <dd>{showUsd ? <AnimatedNumber value={navPerShare} decimals={4} prefix="$" /> : "—"}</dd>
-        </div>
-        <div className="stat">
-          <dt>Creator fee</dt>
-          <dd>{props.feeBps > 0n ? `${Number(props.feeBps) / 100}%` : "None"}</dd>
-        </div>
-        <div className="stat">
-          <dt>Basket value</dt>
-          <dd>{showUsd ? <AnimatedNumber value={totalValue} decimals={2} prefix="$" /> : "—"}</dd>
-        </div>
-      </dl>
+
+        <dl className={`stats ${pulse ? "pulsing" : ""}`}>
+          <div className="stat">
+            <dt>Value per share</dt>
+            <dd>{showUsd ? <AnimatedNumber value={navPerShare} decimals={4} prefix="$" /> : "—"}</dd>
+          </div>
+          <div className="stat">
+            <dt>Shares out</dt>
+            <dd>
+              <Flash watch={data.supply}>
+                <AnimatedNumber value={supply} decimals={supply === 0 ? 0 : 3} />
+              </Flash>
+            </dd>
+          </div>
+          <div className="stat">
+            <dt>Holdings</dt>
+            <dd>
+              <AnimatedNumber value={props.constituents.length} />
+            </dd>
+          </div>
+          <div className="stat">
+            <dt>Creator fee</dt>
+            <dd>{props.feeBps > 0n ? `${Number(props.feeBps) / 100}%` : "None"}</dd>
+          </div>
+        </dl>
+      </div>
 
       <div className="trade-row" style={{marginTop: 32}}>
       <section className="section" style={{marginTop: 0}}>
@@ -128,61 +129,72 @@ export default function LiveBasketView(props: Props) {
 
       <section className="section">
         <div className="section-head">
-          <h2>What backs each share</h2>
+          <h2>Holdings</h2>
           <span className="note">
             {supply === 0 ? (
-              "Nothing minted yet"
+              "Nothing bought yet"
             ) : (
               <>
-                Basket composition · block <span className="tnum">{data.blockNumber}</span>
+                read from the contract at block{" "}
+                <span className="tnum">{Number(data.blockNumber).toLocaleString("en-US")}</span>
               </>
             )}
           </span>
         </div>
 
-        {showUsd && (
-          <Reveal>
-            <div className="card" style={{marginBottom: 12}}>
-              <Allocation
-                slices={valued.map((h) => ({ticker: h.ticker, value: h.value, target: weight}))}
-              />
-            </div>
-          </Reveal>
-        )}
+        {/*
+          One table, not a chart beside a list.
+          
+          Target is fixed at deployment; actual is what the market has done to it since.
+          Drift between them is the whole argument for rebalancing, so it gets its own
+          column and the only semantic colour on the page.
+        */}
+        <div className="board-wrap">
+          <table className="ledger">
+            <thead>
+              <tr>
+                <th scope="col">Holding</th>
+                <th scope="col" className="col-num">Target</th>
+                <th scope="col" className="col-num">Actual</th>
+                <th scope="col" className="col-num">Drift</th>
+                <th scope="col" className="col-num">Per share</th>
+                <th scope="col" className="col-num">Held</th>
+                <th scope="col" className="col-num">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {valued.map((holding) => {
+                const actual = totalValue > 0 ? (holding.value / totalValue) * 100 : 0;
+                const drift = actual - weight;
+                const driftClass = !showUsd ? "" : drift >= 0 ? "up" : "down";
 
-        <div className="card">
-          {valued.map((holding, i) => (
-            <Reveal key={holding.address} delay={i * 70}>
-              <div className="holding">
-                <div className="holding-top">
-                  <span className="holding-name">
-                    {holding.ticker}
-                    {holding.price > 0 && (
-                      <span className="holding-price">{usd(holding.price)}</span>
-                    )}
-                  </span>
-                  <span className="holding-units">
-                    <Flash watch={holding.perShare}>
-                      {Number(holding.perShare) === 0
-                        ? "—"
-                        : Number(holding.perShare).toFixed(9)}
-                    </Flash>
-                  </span>
-                </div>
-                <Bar percent={weight} delay={i * 90} />
-                <div className="holding-top" style={{marginTop: 8}}>
-                  <span className="holding-units" style={{opacity: 0.7}}>
-                    {weight.toFixed(2)}% target
-                  </span>
-                  <span className="holding-units" style={{opacity: 0.7}}>
-                    basket holds{" "}
-                    <Flash watch={holding.held}>{Number(holding.held).toFixed(9)}</Flash>
-                    {holding.value > 0 && ` · ${usd(holding.value)}`}
-                  </span>
-                </div>
-              </div>
-            </Reveal>
-          ))}
+                return (
+                  <tr key={holding.address}>
+                    <th scope="row" className="ledger-ticker">
+                      {holding.ticker}
+                      {holding.price > 0 && (
+                        <span className="ledger-price">{usd(holding.price)}</span>
+                      )}
+                    </th>
+                    <td className="col-num">{weight.toFixed(2)}%</td>
+                    <td className="col-num">{showUsd ? `${actual.toFixed(2)}%` : "—"}</td>
+                    <td className={`col-num drift ${driftClass}`}>
+                      {showUsd ? `${drift >= 0 ? "+" : "−"}${Math.abs(drift).toFixed(2)}` : "—"}
+                    </td>
+                    <td className="col-num mono">
+                      {Number(holding.perShare) === 0 ? "—" : Number(holding.perShare).toFixed(9)}
+                    </td>
+                    <td className="col-num mono">
+                      <Flash watch={holding.held}>{Number(holding.held).toFixed(9)}</Flash>
+                    </td>
+                    <td className="col-num ledger-amount">
+                      {holding.value > 0 ? usd(holding.value) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {justMinted && (

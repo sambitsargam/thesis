@@ -1372,10 +1372,20 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   font-size: 0.98rem;
 }
 
-/* A phone has no room for two renderings of the same number. */
-@media (max-width: 700px) {
-  .ledger thead th:nth-child(3),
-  .ledger tbody td:nth-child(3) { display: none; }
+.ledger-price { color: var(--ink-2); font-weight: 400; font-size: 0.86rem; margin-left: 8px; }
+
+/* Drift is the only place gain and loss colour appears. */
+.drift.up { color: var(--gain); }
+.drift.down { color: var(--loss); }
+
+/* A phone cannot hold seven columns: keep what the basket is and what it is worth. */
+@media (max-width: 760px) {
+  .ledger thead th:nth-child(2),
+  .ledger tbody td:nth-child(2),
+  .ledger thead th:nth-child(5),
+  .ledger tbody td:nth-child(5),
+  .ledger thead th:nth-child(6),
+  .ledger tbody td:nth-child(6) { display: none; }
 }
 
 /* ---------------------------------------------------------- market session */
@@ -1401,9 +1411,9 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   align-self: center;
 }
 
-.session.live .session-dot { background: var(--accent); }
-.session-label { font-weight: 620; color: var(--ink); }
-.session.live .session-label { color: var(--accent); }
+.session.live .session-dot { background: var(--gain); }
+.session-label { font-weight: 600; color: var(--ink); }
+.session.live .session-label { color: var(--gain); }
 .session-detail { flex: 1 1 200px; }
 
 .hero-cta {
@@ -1509,3 +1519,18 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .gallery-more { margin: 16px 0 0; font-size: 1rem; }
 .gallery-more a { border-bottom: 1px solid var(--rule); padding-bottom: 1px; }
 .gallery-more a:hover { border-bottom-color: var(--ink); }
+
+/* ---------------------------------------------------------------- fork cta */
+
+.fork-cta {
+  display: inline-block;
+  background: var(--ink);
+  color: var(--accent-ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-size: 1rem;
+}
+
+.fork-cta:hover { opacity: 0.88; }
+.controls-note { margin: 12px 0 0; color: var(--ink-2); font-size: 0.96rem; max-width: 60ch; }
