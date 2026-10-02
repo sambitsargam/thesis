@@ -32,7 +32,10 @@ const COLUMNS: {key: SortKey; label: string}[] = [
   {key: "creatorEarned", label: "Creator earns"}
 ];
 
-function usd(n: number): string {
+function usd(n: number | null | undefined): string {
+  // Defensive: a missing figure must render as a dash, never throw. This column threw
+  // once on an undefined value and took the whole table down with it.
+  if (n === null || n === undefined || !Number.isFinite(n)) return "—";
   if (n >= 1000) return `$${Math.round(n).toLocaleString("en-US")}`;
 
   // A first creator fee is fractions of a cent, and rounding it to $0.01 would overstate
@@ -170,17 +173,15 @@ export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; exp
                   </div>
                 </td>
 
-                <td className={`col-num${sort === "tvlUsd" ? " col-sorted" : ""}`}>
-                  {value === null ? "—" : usd(value)}
-                </td>
+                <td className={`col-num${sort === "tvlUsd" ? " col-sorted" : ""}`}>{usd(value)}</td>
                 <td className={`col-num${sort === "moneyIn" ? " col-sorted" : ""}`}>
-                  {row.moneyIn === null ? "—" : usd(row.moneyIn)}
+                  {usd(row.moneyIn)}
                 </td>
                 <td className={`col-num${sort === "mints" ? " col-sorted" : ""}`}>
-                  {row.mints === null ? "—" : row.mints}
+                  {row.mints ?? "—"}
                 </td>
                 <td className={`col-num${sort === "creatorEarned" ? " col-sorted" : ""}`}>
-                  {row.creatorEarned === null ? "—" : usd(row.creatorEarned)}
+                  {usd(row.creatorEarned)}
                 </td>
 
                 <td className="col-act">

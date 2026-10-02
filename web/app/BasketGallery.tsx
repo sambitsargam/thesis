@@ -5,6 +5,10 @@ import {useState} from "react";
 import {Reveal} from "./motion";
 import {useWallet} from "./WalletProvider";
 
+/** The issuer's name belongs to the site, not to every card on it. */
+const title = (name: string) =>
+  name.replace(/^Thesis\s+/i, "").replace(/,?\s*equal weight$/i, "");
+
 interface Basket {
   address: string;
   name: string;
@@ -18,7 +22,11 @@ interface Basket {
   feeBps: number;
 }
 
-export default function BasketGallery({baskets}: {baskets: Basket[]}) {
+/**
+ * @param limit Most cards to show before pointing at the full listing. The landing page
+ *        shows a handful; sixteen cards there buries everything below them.
+ */
+export default function BasketGallery({baskets, limit}: {baskets: Basket[]; limit?: number}) {
   const {account} = useWallet();
   const [mineOnly, setMineOnly] = useState(false);
 
@@ -26,7 +34,10 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
     Boolean(account) && basket.creator.toLowerCase() === account!.toLowerCase();
 
   const mineCount = baskets.filter(isMine).length;
-  const shown = mineOnly ? baskets.filter(isMine) : baskets;
+  const matching = mineOnly ? baskets.filter(isMine) : baskets;
+  // Filtering to your own is a deliberate request, so it is never truncated.
+  const shown = limit && !mineOnly ? matching.slice(0, limit) : matching;
+  const hidden = matching.length - shown.length;
 
   if (baskets.length === 0) {
     return (
@@ -64,7 +75,7 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
               <div>
                 <div className="card-title">
                   <Link className="stretched" href={`/basket/${basket.address}`}>
-                    {basket.name}
+                    {title(basket.name)}
                   </Link>
                   {isMine(basket) && <span className="mine">Yours</span>}
                 </div>
@@ -100,6 +111,14 @@ export default function BasketGallery({baskets}: {baskets: Basket[]}) {
           </Reveal>
         ))}
       </div>
+
+      {hidden > 0 && (
+        <p className="gallery-more">
+          <Link href="/leaderboard">
+            {hidden} more {hidden === 1 ? "basket" : "baskets"}, ranked by what they hold →
+          </Link>
+        </p>
+      )}
 
       {shown.length === 0 && (
         <div className="card">

@@ -23,6 +23,9 @@
   /* Spot colour, two uses only: the market-session dot and the creator's fee. */
   --spot: #8a2b22;
 
+  /* Selected, active, just-happened. Paper darkened, never the accent diluted. */
+  --tint: #efe8db;
+
   /* Semantic, never decorative. */
   --gain: #1f6b4a;
   --loss: #9b2c2c;
@@ -385,12 +388,13 @@ input::placeholder { color: var(--muted); }
 }
 
 .flash { border-radius: 4px; transition: background-color 0.5s ease, color 0.5s ease; }
-.flash.on { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+.flash.on { background: var(--tint); color: var(--ink); }
 
 /* live indicator */
 
 .chip.live::before {
   content: "";
+  background: var(--spot) !important;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -401,17 +405,18 @@ input::placeholder { color: var(--muted); }
   animation: pulse 2.4s ease-in-out infinite;
 }
 
+/* The live dot breathes in the spot colour; nothing else on the page pulses. */
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); opacity: 1; }
-  50% { box-shadow: 0 0 0 5px transparent; opacity: 0.55; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .stats.pulsing { animation: none; }
 
+/* Retired with the glow it belonged to; `.stats.pulsing` no longer animates. */
 @keyframes lift {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
-  35% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent); }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  from { opacity: 1; }
+  to { opacity: 1; }
 }
 
 /* mint stepper */
@@ -442,7 +447,7 @@ input::placeholder { color: var(--muted); }
   transition: all 0.3s ease;
 }
 
-.step[data-state="active"] { color: var(--ink); background: color-mix(in srgb, var(--accent) 9%, var(--surface-2)); }
+.step[data-state="active"] { color: var(--ink); background: var(--tint); }
 .step[data-state="active"] .dot { border-color: var(--accent); border-right-color: transparent; animation: spin 0.8s linear infinite; }
 .step[data-state="done"] { color: var(--ink-dim); }
 .step[data-state="done"] .dot { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
@@ -452,12 +457,16 @@ input::placeholder { color: var(--muted); }
 .receipt {
   margin-top: 18px;
   padding: 16px 18px;
-  border-radius: 12px;
-  border: 1px solid var(--accent-dim);
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--tint);
   animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.receipt .headline { color: var(--accent); font-weight: 620; letter-spacing: -0.01em; }
+.receipt .headline {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.2rem;
+  color: var(--ink);
+}
 
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px) scale(0.985); }
@@ -506,23 +515,40 @@ input::placeholder { color: var(--muted); }
 .nav-right { display: flex; align-items: center; gap: 10px; }
 .nav .chip { white-space: nowrap; }
 
-.connect { padding: 10px 17px; border-radius: var(--radius); font-size: 0.96rem; }
+/*
+ * The only filled element in the header, so it reads as the one thing to do. Its height
+ * is matched to the chips beside it; the old padding left the nav visibly lumpy.
+ */
+.connect {
+  padding: 7px 15px;
+  border-radius: var(--radius);
+  font-size: 0.96rem;
+  line-height: 1.5;
+  /* It was wrapping to "Connect / wallet" and standing 62px tall beside 38px chips.
+     Nothing in the header wraps. */
+  white-space: nowrap;
+}
 
 .account-pill {
   display: inline-flex;
   align-items: stretch;
   gap: 0;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--paper);
+  border: 1px solid var(--rule);
   color: var(--ink);
-  border-radius: 11px;
+  border-radius: var(--radius);
   padding: 0;
   overflow: hidden;
-  font-size: 0.9rem;
+  font-size: 0.94rem;
 }
-.account-pill:hover { border-color: var(--accent-dim); opacity: 1; }
-.pill-balance { padding: 9px 13px; color: var(--ink-dim); border-right: 1px solid var(--line); }
-.pill-id { padding: 9px 13px; display: inline-flex; align-items: center; gap: 7px; font-weight: 580; }
+.account-pill:hover { border-color: var(--ink); opacity: 1; }
+.pill-balance {
+  padding: 6px 12px;
+  color: var(--ink-2);
+  border-right: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+.pill-id { padding: 6px 12px; display: inline-flex; align-items: center; gap: 7px; }
 .pill-id img { width: 16px; height: 16px; border-radius: 4px; }
 
 /* ==================================================================== modal */
@@ -542,13 +568,14 @@ input::placeholder { color: var(--muted); }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
 .modal {
-  width: min(420px, 100%);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 22px;
-  box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.7);
-  animation: pop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  width: min(440px, 100%);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 24px;
+  /* A sheet of paper laid on the page, not a panel glowing in the dark. */
+  box-shadow: 0 18px 50px -24px rgba(21, 18, 14, 0.35);
+  animation: pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes pop {
@@ -557,8 +584,14 @@ input::placeholder { color: var(--muted); }
 }
 
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.modal-head h3 { margin: 0; font-size: 1.06rem; letter-spacing: -0.02em; font-weight: 640; }
-.modal-sub { color: var(--muted); font-size: 0.88rem; margin: 6px 0 0; }
+.modal-head h3 {
+  margin: 0;
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.modal-sub { color: var(--ink-2); font-size: 0.96rem; margin: 8px 0 0; }
 
 .close {
   background: none;
@@ -569,6 +602,7 @@ input::placeholder { color: var(--muted); }
   border-radius: 7px;
 }
 .close:hover { color: var(--ink); background: var(--surface-2); opacity: 1; }
+.close { border-radius: var(--radius); }
 
 .wallet-list { display: grid; gap: 7px; margin-top: 18px; }
 
@@ -578,21 +612,26 @@ input::placeholder { color: var(--muted); }
   align-items: center;
   gap: 12px;
   text-align: left;
-  background: var(--surface-2);
-  border: 1px solid transparent;
+  background: var(--paper);
+  border: 1px solid var(--rule);
   color: var(--ink);
-  border-radius: 12px;
-  padding: 13px 15px;
-  font-weight: 560;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-weight: 400;
 }
-.wallet-row:hover { border-color: var(--accent-dim); background: color-mix(in srgb, var(--accent) 7%, var(--surface-2)); opacity: 1; }
-.wallet-go { color: var(--muted); }
+
+/*
+ * Hover darkens the rule, nothing else. Mixing the accent into the background used to
+ * tint it; now that the accent is ink, that mix turned the row muddy.
+ */
+.wallet-row:hover { border-color: var(--ink); background: var(--surface-2); opacity: 1; }
+.wallet-go { color: var(--ink-2); }
 
 .wallet-mark {
   width: 30px;
   height: 30px;
-  border-radius: 9px;
-  background: var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
   display: grid;
   place-items: center;
   font-weight: 660;
@@ -613,8 +652,8 @@ input::placeholder { color: var(--muted); }
   overflow: hidden;
 }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.identity-name { font-weight: 640; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.identity-sub { color: var(--muted); font-size: 0.85rem; }
+.identity-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.identity-sub { color: var(--ink-2); font-size: 0.92rem; }
 
 .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 20px; }
 button.ghost.danger { color: var(--danger); }
@@ -675,6 +714,12 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   .modal-actions { grid-template-columns: 1fr; }
 }
 
+/* Four items plus the wordmark is too many below this; the network chip is the least
+   load-bearing of them, and the footer states the chain anyway. */
+@media (max-width: 900px) {
+  .nav .chip.live { display: none; }
+}
+
 @media (max-width: 480px) {
   .nav-inner { gap: 9px; }
   .nav .chip.live { display: none; }
@@ -717,8 +762,8 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   padding: 12px 14px;
   transition: border-color 0.18s ease, background-color 0.18s ease;
 }
-.pick:hover { border-color: var(--accent-dim); opacity: 1; }
-.pick[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); }
+.pick:hover { border-color: var(--ink); opacity: 1; }
+.pick[aria-pressed="true"] { border-color: var(--ink); background: var(--tint); }
 .pick-ticker { grid-area: ticker; font-weight: 620; }
 .pick-name { grid-area: name; color: var(--muted); font-size: 0.82rem; font-weight: 440; }
 .pick-mark {
@@ -808,7 +853,7 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
-.dg-basket { fill: color-mix(in srgb, var(--accent) 12%, transparent); }
+.dg-basket { fill: var(--tint); }
 .dg-basket-ring {
   fill: none;
   stroke: var(--accent);
@@ -906,9 +951,9 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border: 1px solid var(--accent-dim);
-  color: var(--accent);
+  background: var(--tint);
+  border: 1px solid var(--rule);
+  color: var(--ink);
   border-radius: 999px;
   padding: 6px 12px;
   font-size: 0.84rem;
@@ -952,9 +997,9 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .rationale {
   margin-top: 14px;
   padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--accent-dim);
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--tint);
   font-size: 0.92rem;
   animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -974,8 +1019,8 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
   margin-top: 16px;
   padding: 20px;
   border-radius: var(--radius);
-  border: 1px solid var(--accent-dim);
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: 1px solid var(--rule);
+  background: var(--tint);
   animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1047,9 +1092,9 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 
 .flow-step { background: var(--surface); padding: 16px 20px; display: grid; grid-template-columns: 30px 1fr; gap: 14px; align-items: start; }
 .flow-num {
-  width: 24px; height: 24px; border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
+  width: 24px; height: 24px; border-radius: var(--radius);
+  background: var(--tint);
+  color: var(--ink);
   display: grid; place-items: center;
   font-size: 0.76rem; font-weight: 680;
 }
@@ -1060,13 +1105,22 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 
 .cta {
   margin-top: 64px;
-  padding: 32px;
+  padding: 36px 32px;
   border-radius: var(--radius);
-  border: 1px solid var(--accent-dim);
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  /* A ruled block, like the closing panel of a printed sheet. */
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  background: var(--ground);
   text-align: center;
 }
-.cta h2 { font-size: 1.5rem; letter-spacing: -0.03em; margin: 0 0 8px; text-transform: none; color: var(--ink); font-weight: 680; }
+.cta h2 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-weight: 600;
+}
 .cta p { color: var(--ink-dim); margin: 0 auto 20px; max-width: 46ch; }
 
 .cta-button {
@@ -1320,3 +1374,90 @@ button.small { padding: 9px 13px; font-size: 0.85rem; }
 .card-actions { position: relative; z-index: 1; margin-top: 14px; display: flex; gap: 10px; }
 
 .byline { color: var(--ink-dim); font-size: 0.92rem; margin-top: 10px; }
+
+/* ================================================================= research */
+
+.researching {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  padding: 22px 24px;
+  margin-top: 20px;
+}
+
+.researching-line {
+  margin: 0;
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.researching-line em { font-style: italic; }
+
+.researching-clock {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.researching-note { margin: 12px 0 14px; color: var(--ink-2); max-width: 62ch; }
+
+/* The universe it is allowed to choose from, stated rather than animated. */
+.universe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.universe span {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  padding: 3px 7px;
+}
+
+/* ------------------------------------------------- the one motion moment */
+
+.check { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--rule); }
+
+.check-row {
+  display: grid;
+  grid-template-columns: 1.4rem 5.5rem 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  animation: resolve 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.check-row:last-of-type { border-bottom: 0; }
+
+@keyframes resolve {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.check-mark { font-size: 0.95rem; }
+.check-row.kept .check-mark { color: var(--gain); }
+.check-row.refused .check-mark { color: var(--spot); }
+
+.check-ticker { font-weight: 600; }
+.check-row.refused .check-ticker { text-decoration: line-through; color: var(--spot); }
+.check-note { color: var(--ink-2); font-size: 0.94rem; }
+
+.check-foot { margin: 14px 0 0; color: var(--ink-2); font-size: 0.94rem; max-width: 66ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .check-row { animation: none; }
+}
+
+.gallery-more { margin: 16px 0 0; font-size: 1rem; }
+.gallery-more a { border-bottom: 1px solid var(--rule); padding-bottom: 1px; }
+.gallery-more a:hover { border-bottom-color: var(--ink); }

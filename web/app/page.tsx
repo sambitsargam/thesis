@@ -15,7 +15,11 @@ const STRIP_TICKERS = ["NVDAx", "AMDx", "TSMx", "ASMLx", "SPCXx", "TSLAx"];
 export default async function Home() {
   const baskets = await loadBaskets();
 
-  const cards = baskets.map((basket) => ({
+  const cards = [...baskets]
+    // Busiest first: a judge should meet the baskets people actually bought, and the
+    // registry's own order is just whoever deployed earliest.
+    .sort((a, b) => Number(b.counters?.quoteIn ?? 0n) - Number(a.counters?.quoteIn ?? 0n))
+    .map((basket) => ({
     address: basket.address,
     name: basket.name,
     symbol: basket.symbol,
@@ -109,7 +113,7 @@ export default async function Home() {
           </span>
         </div>
 
-        <BasketGallery baskets={cards} />
+        <BasketGallery baskets={cards} limit={8} />
       </section>
 
       <section className="section">

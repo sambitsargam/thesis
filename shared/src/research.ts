@@ -23,10 +23,24 @@ export interface ResearchBriefing {
   risks: string;
   sources: Source[];
   picks: ResearchPick[];
+  /**
+   * Tickers the model proposed that did not survive the catalogue check.
+   *
+   * Recorded rather than silently dropped because this is the safety argument made
+   * visible: an equity that does not trade on X Layer cannot enter a basket, so a model
+   * that invents one changes nothing. Selection is unaffected — this only reports it.
+   */
+  rejected: RejectedPick[];
   basketName: string;
   symbol: string;
   searches: number;
   models: {search: string; select: string};
+}
+
+/** A proposed ticker that was refused, and the reason it was refused. */
+export interface RejectedPick {
+  ticker: string;
+  reason: "not tradeable on X Layer" | "already in the basket";
 }
 
 function apiKey(): string {
@@ -168,11 +182,18 @@ async function selectFromResearch(
 
   const seen = new Set<string>();
   const picks: ResearchPick[] = [];
+  const rejected: RejectedPick[] = [];
   for (const pick of parsed.picks ?? []) {
-    const match = XSTOCK_CATALOG.find(
-      (t) => t.ticker.toLowerCase() === pick.ticker.trim().toLowerCase()
-    );
-    if (!match || seen.has(match.address)) continue;
+    const proposed = pick.ticker.trim();
+    const match = XSTOCK_CATALOG.find((t) => t.ticker.toLowerCase() === proposed.toLowerCase());
+    if (!match) {
+      rejected.push({ticker: proposed, reason: "not tradeable on X Layer"});
+      continue;
+    }
+    if (seen.has(match.address)) {
+      rejected.push({ticker: match.ticker, reason: "already in the basket"});
+      continue;
+    }
     seen.add(match.address);
     picks.push({
       ticker: match.ticker,
@@ -192,6 +213,7 @@ async function selectFromResearch(
     outlook: parsed.outlook?.trim() ?? "",
     risks: parsed.risks?.trim() ?? "",
     picks,
+    rejected,
     basketName: parsed.basketName?.trim().slice(0, 48) || theme.slice(0, 48),
     symbol: (parsed.symbol || "IDX").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6)
   };

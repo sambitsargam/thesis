@@ -122,7 +122,19 @@ export async function loadBaskets(): Promise<BasketSummary[]> {
         abi: thesisFactoryAbi,
         functionName: "baskets"
       });
-      return Promise.all(addresses.map((address) => loadBasket(address, factory, version)));
+      /*
+       * A basket that cannot be read is dropped, not fatal.
+       *
+       * Every read here goes to a public node that rate limits. Rendering fifteen of
+       * sixteen baskets is a far better outcome on stage than a page that 500s because
+       * one `balanceOf` was refused.
+       */
+      const loaded = await Promise.all(
+        addresses.map((address) =>
+          loadBasket(address, factory, version).catch(() => undefined)
+        )
+      );
+      return loaded.filter((basket): basket is BasketSummary => basket !== undefined);
     })
   );
 

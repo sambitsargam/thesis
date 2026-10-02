@@ -360,7 +360,7 @@ export default function LaunchForm({
           <span className="avail">or start from a preset</span>
         </div>
 
-        {researching && <ResearchProgress />}
+        {researching && <ResearchProgress theme={theme} />}
         {briefing && <BriefingCard data={briefing} />}
 
         {rationale && (
