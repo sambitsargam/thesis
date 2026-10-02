@@ -9,7 +9,7 @@ import {
   thesisBasketAbi,
   xLayer
 } from "@thesis/shared";
-import {fetchSwapQuote} from "@thesis/shared/okx";
+import {fetchSwapQuotes} from "@thesis/shared/okx";
 
 const CHAIN_ID = 196;
 const QUOTE_DECIMALS = 6;
@@ -63,18 +63,21 @@ async function main(): Promise<void> {
   }
   console.log("");
 
-  const swapData: `0x${string}`[] = [];
-  for (const [i, token] of constituents.entries()) {
-    const quote = await fetchSwapQuote({
+  // Batched, not looped: quoting one leg at a time trips the aggregator's rate limit on
+  // baskets of four or more, and this helper spaces the calls and backs off.
+  const quotes = await fetchSwapQuotes(
+    constituents.map((token, i) => ({token, amount: legs[i]!})),
+    {
       chainId: CHAIN_ID,
       fromToken: deployment.quoteToken,
-      toToken: token,
-      amount: legs[i]!,
       slippagePercent: process.env.SLIPPAGE_PERCENT ?? "1",
       // The adapter holds the tokens and receives the fill, never the end user.
       holder: deployment.router
-    });
+    }
+  );
 
+  const swapData: `0x${string}`[] = [];
+  quotes.forEach((quote, i) => {
     if (quote.to.toLowerCase() !== deployment.okxDexRouter.toLowerCase()) {
       throw new Error(
         `Leg ${i}: OKX returned calldata for ${quote.to}, but the adapter only calls ${deployment.okxDexRouter}`
@@ -82,11 +85,11 @@ async function main(): Promise<void> {
     }
 
     console.log(
-      `leg ${i}  ${formatUnits(legs[i]!, QUOTE_DECIMALS)} USD₮0 -> ${token}` +
+      `leg ${i}  ${formatUnits(legs[i]!, QUOTE_DECIMALS)} USD₮0 -> ${constituents[i]}` +
         `\n       expect ${formatUnits(quote.expectedOut, SHARE_DECIMALS)}  calldata ${quote.data.length / 2 - 1} bytes`
     );
     swapData.push(quote.data);
-  }
+  });
 
   // The first mint prices one share per whole quote token, so this is exact.
   const minSharesOut =
@@ -108,8 +111,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  const key = process.env.DEPLOYER_PRIVATE_KEY;
-  if (!key) throw new Error("DEPLOYER_PRIVATE_KEY is not set in .env");
+  // `--as=NAME` signs with a different key from .env, so a second wallet can launch and
+  // mint as its own creator rather than everything tracing back to one address.
+  const keyVar = process.argv.find((a) => a.startsWith("--as="))?.split("=")[1] ?? "DEPLOYER_PRIVATE_KEY";
+  const key = process.env[keyVar];
+  if (!key) throw new Error(`${keyVar} is not set in .env`);
   const account = privateKeyToAccount(key.startsWith("0x") ? (key as `0x${string}`) : `0x${key}`);
   // dataSuffix on the client attributes every transaction it sends, approval included.
   const wallet = createWalletClient({
@@ -139,14 +145,24 @@ async function main(): Promise<void> {
   }
 
   console.log("\nminting...");
-  const hash = await wallet.sendTransaction({to: basket, data});
+  /*
+   * Estimation runs tight on a basket with four or more legs: each swap is a nested call
+   * through the adapter, and a four-leg mint has reverted here with OutOfGas *after*
+   * every swap filled, wasting the gas and the user's time. A third of headroom costs
+   * nothing when unused, because unused gas is refunded.
+   */
+  const estimate = await publicClient.estimateGas({account, to: basket, data});
+  const hash = await wallet.sendTransaction({to: basket, data, gas: (estimate * 4n) / 3n});
   const receipt = await publicClient.waitForTransactionReceipt({hash});
 
+  // Pinned to the receipt's block: read at "latest" and the node can answer from state
+  // it has not finished applying, which prints a balance of zero after a good mint.
   const shares = await publicClient.readContract({
     address: basket,
     abi: thesisBasketAbi,
     functionName: "balanceOf",
-    args: [account.address]
+    args: [account.address],
+    blockNumber: receipt.blockNumber
   });
 
   console.log(`\n${receipt.status === "success" ? "minted" : "FAILED"}  ${hash}`);

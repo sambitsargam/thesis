@@ -8,7 +8,7 @@ import {
   xLayer
 } from "@thesis/shared";
 import {equityFor, searchEquities} from "@thesis/shared/catalog";
-import {fetchSwapQuote} from "@thesis/shared/okx";
+import {fetchSwapQuotes} from "@thesis/shared/okx";
 
 const CHAIN_ID = 196;
 const QUOTE_DECIMALS = 6;
@@ -63,28 +63,35 @@ async function main(): Promise<void> {
   console.log(`fee       ${Number(feeBps) / 100}% of every mint, to the creator`);
   console.log(`weight    ${(100 / constituents.length).toFixed(2)}% each\n`);
 
-  for (const equity of constituents) {
-    // A basket holding an unroutable equity can never be minted, so prove each leg first.
-    const quote = await fetchSwapQuote({
+  // A basket holding an unroutable equity can never be minted, so prove every leg first.
+  // Batched rather than looped: the aggregator rate-limits, and this helper backs off.
+  const quotes = await fetchSwapQuotes(
+    constituents.map((equity) => ({token: equity.address, amount: PROBE})),
+    {
       chainId: CHAIN_ID,
       fromToken: deployment.quoteToken,
-      toToken: equity.address,
-      amount: PROBE,
       slippagePercent: "1",
       holder: deployment.router
-    });
+    }
+  );
+
+  quotes.forEach((quote, i) => {
+    const equity = constituents[i]!;
     console.log(
       `routes ok ${equity.ticker.padEnd(8)} ${equity.address}  1 USD₮0 -> ${Number(quote.expectedOut) / 1e18}`
     );
-  }
+  });
 
   if (!send) {
     console.log("\nDry run. Re-run with --send to deploy.");
     return;
   }
 
-  const key = process.env.DEPLOYER_PRIVATE_KEY;
-  if (!key) throw new Error("DEPLOYER_PRIVATE_KEY is not set in .env");
+  // `--as=NAME` signs with a different key from .env, so a second wallet can launch and
+  // mint as its own creator rather than everything tracing back to one address.
+  const keyVar = process.argv.find((a) => a.startsWith("--as="))?.split("=")[1] ?? "DEPLOYER_PRIVATE_KEY";
+  const key = process.env[keyVar];
+  if (!key) throw new Error(`${keyVar} is not set in .env`);
   const account = privateKeyToAccount(key.startsWith("0x") ? (key as `0x${string}`) : `0x${key}`);
 
   const rpc = process.env.XLAYER_RPC_URL || xLayer.rpcUrls.default.http[0];

@@ -26,6 +26,33 @@ interface Props {
   onChanged?: () => void;
 }
 
+/**
+ * Sends with a third more gas than the wallet estimates.
+ *
+ * A mint is one nested swap per constituent, and estimation runs tight enough that a
+ * four-leg basket has reverted with OutOfGas after every swap already filled. Unused gas
+ * is refunded, so the headroom is free; a failed mint in front of someone is not.
+ */
+async function sendPadded(
+  client: NonNullable<ReturnType<typeof useWallet>["client"]>,
+  account: `0x${string}`,
+  to: `0x${string}`,
+  data: `0x${string}`
+): Promise<`0x${string}`> {
+  const estimate = await client
+    .request({method: "eth_estimateGas", params: [{from: account, to, data}]})
+    .then((value) => BigInt(value as string))
+    .catch(() => undefined);
+
+  return client.sendTransaction({
+    account,
+    chain: null,
+    to,
+    data,
+    ...(estimate ? {gas: (estimate * 4n) / 3n} : {})
+  });
+}
+
 type Mode = "mint" | "redeem";
 type Payout = "quote" | "kind";
 type Phase = "idle" | "quoting" | "approving" | "sending" | "done";
@@ -194,7 +221,7 @@ export default function ActionPanel(props: Props) {
     });
 
     setPhase("sending");
-    setTxHash(await client!.sendTransaction({account: account!, chain: null, to: props.basket, data}));
+    setTxHash(await sendPadded(client!, account!, props.basket, data));
   }
 
   async function runRedeem() {
@@ -218,7 +245,7 @@ export default function ActionPanel(props: Props) {
     });
 
     setPhase("sending");
-    setTxHash(await client!.sendTransaction({account: account!, chain: null, to: props.basket, data}));
+    setTxHash(await sendPadded(client!, account!, props.basket, data));
   }
 
   /** Burn shares and take USD₮0 out, selling every constituent in one transaction. */
@@ -277,7 +304,7 @@ export default function ActionPanel(props: Props) {
       functionName: "sellForQuote",
       args: [props.basket, shares, body.quotes.map((q) => q.data), minQuoteOut]
     });
-    setTxHash(await client!.sendTransaction({account: account!, chain: null, to: ZAP, data}));
+    setTxHash(await sendPadded(client!, account!, ZAP, data));
   }
 
   const preview =

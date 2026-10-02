@@ -31,14 +31,19 @@ const SORTS: {key: SortKey; label: string}[] = [
   {key: "creatorEarned", label: "Creator earned"}
 ];
 
-const usd = (n: number) =>
-  n >= 1000
-    ? `$${Math.round(n).toLocaleString("en-US")}`
-    : // A first creator fee is fractions of a cent. Rounding it to $0.01 would overstate
-      // the one number a creator will check against their own wallet.
-      n > 0 && n < 0.01
-      ? `$${n.toFixed(4)}`
-      : `$${n.toFixed(2)}`;
+function usd(n: number): string {
+  if (n >= 1000) return `$${Math.round(n).toLocaleString("en-US")}`;
+
+  // A first creator fee is fractions of a cent, and rounding it to $0.01 would overstate
+  // the one number a creator checks against their own wallet. Below four decimals there
+  // is nothing left to show, so dust reads as zero rather than as "$0.0000".
+  if (n > 0 && n < 0.01) {
+    const fine = n.toFixed(4);
+    return Number(fine) === 0 ? "$0.00" : `$${fine}`;
+  }
+
+  return `$${n.toFixed(2)}`;
+}
 
 export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; explorerBase: string}) {
   const {account} = useWallet();

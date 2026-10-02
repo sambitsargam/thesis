@@ -50,6 +50,7 @@ problem is real. On-chain it should be one click.
 | `ThesisZap` | `0x42FF891cd488fAA984aad9c981aE0ADE792960A0` | [OKLink](https://www.oklink.com/xlayer/address/0x42FF891cd488fAA984aad9c981aE0ADE792960A0) |
 | `THESIS-TECH` (V1 demo basket) | `0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB` | [OKLink](https://www.oklink.com/xlayer/address/0x728896dBB0Dd3c75313e2238AB4F3Fb3Daf5d1BB) |
 | `THESIS-AINF` (V2, 0.3% creator fee) | `0xbAF764B25dCA8780a596a00B92Ac6273C3eD7A12` | [OKLink](https://www.oklink.com/xlayer/address/0xbAF764B25dCA8780a596a00B92Ac6273C3eD7A12) |
+| `THESIS-CRYP` (V2, second creator, 0.5%) | `0x3afF338175Fe0BA1eb330F741Db08039Dc2C6890` | [OKLink](https://www.oklink.com/xlayer/address/0x3afF338175Fe0BA1eb330F741Db08039Dc2C6890) |
 
 **Proof it works end to end** — mint transaction
 [`0x798d56e0…c4d52a43`](https://www.oklink.com/xlayer/tx/0x798d56e069a1b1893612d8d5282d59f7da01dc884c1ec4c54ed89874c4d52a43)
@@ -118,6 +119,13 @@ Read back from the contract afterwards:
 The `CreatorFeePaid` event in that receipt carries the same `6000`, and the creator's USD₮0
 balance moved by exactly that much. The cap is live too: asking the factory for 101 bps
 reverts with `FeeTooHigh(101, 100)`, which anyone can check with one `eth_call`.
+
+**Proof a creator earns from strangers** — mint transaction
+[`0x3b6729f8…7c3fc49a`](https://www.oklink.com/xlayer/tx/0x3b6729f8dc0b6edb8f6cfc07e303cd84776ac41c52dbf56799bb8ecf7c3fc49a)
+into `THESIS-CRYP`, a basket launched by a different wallet with a 0.5% fee. One wallet
+minted, another was paid: the creator's USD₮0 balance went from `0` to exactly `5000`, and
+the basket's `totalCreatorFees` reads the same. Nobody routed anything through us, and
+there is no address in the contract that could.
 
 ### Ranked, and checkable
 
