@@ -12,6 +12,15 @@ import ShareButton from "./ShareButton";
 export const revalidate = 10;
 
 /**
+ * Display name: the issuer prefix and the weighting are stated elsewhere on the page.
+ *
+ * The on-chain name stays whole in the title tag and the share card; it is only the
+ * heading that drops them, so the theme does not appear twice in two lines.
+ */
+const title = (name: string) =>
+  name.replace(/^Thesis\s+/i, "").replace(/,?\s*equal weight$/i, "");
+
+/**
  * Per-basket metadata so a shared link describes the actual theme.
  *
  * Paired with `opengraph-image.tsx`, pasting a basket anywhere unfurls with its
@@ -131,8 +140,12 @@ export default async function BasketPage({params}: {params: Promise<{address: st
             <Link className="chip" href="/" style={{marginBottom: 22, display: "inline-block"}}>
               ← All baskets
             </Link>
-            <h1 style={{fontSize: "clamp(1.9rem, 5vw, 2.7rem)", maxWidth: "20ch"}}>{name}</h1>
-            <p>&ldquo;{theme}&rdquo;</p>
+            <h1 style={{fontSize: "clamp(2.1rem, 4.4vw, 3.1rem)", maxWidth: "26ch"}}>
+              {title(name)}
+            </h1>
+            {title(theme).trim().toLowerCase() !== title(name).trim().toLowerCase() && (
+              <p>&ldquo;{theme}&rdquo;</p>
+            )}
             {creator && (
               <p className="byline">
                 Launched by{" "}

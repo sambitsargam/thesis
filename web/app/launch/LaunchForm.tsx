@@ -424,7 +424,7 @@ export default function LaunchForm({
 
         <div className="field" style={{marginTop: 22}}>
           <label htmlFor="search">
-            Constituents
+            What it holds
             {picked.length > 0 && (
               <span className="avail">
                 {" "}

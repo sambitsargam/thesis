@@ -131,21 +131,6 @@ export function Reveal({
 }
 
 /** Grows a bar to `percent` once it is on screen. */
-export function Bar({percent, delay = 0}: {percent: number; delay?: number}) {
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setWidth(percent), 60 + delay);
-    return () => clearTimeout(timer);
-  }, [percent, delay]);
-
-  return (
-    <div className="bar">
-      <i style={{width: `${width}%`}} />
-    </div>
-  );
-}
-
 /** Briefly highlights its children whenever `watch` changes. */
 export function Flash({watch, children}: {watch: string | number; children: ReactNode}) {
   const [on, setOn] = useState(false);

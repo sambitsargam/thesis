@@ -9,6 +9,10 @@ import {useWallet} from "./WalletProvider";
 const title = (name: string) =>
   name.replace(/^Thesis\s+/i, "").replace(/,?\s*equal weight$/i, "");
 
+/** True when the theme line would only repeat the title back. */
+const sameAsTitle = (name: string, theme: string) =>
+  title(name).trim().toLowerCase() === title(theme).trim().toLowerCase();
+
 interface Basket {
   address: string;
   name: string;
@@ -79,15 +83,11 @@ export default function BasketGallery({baskets, limit}: {baskets: Basket[]; limi
                   </Link>
                   {isMine(basket) && <span className="mine">Yours</span>}
                 </div>
-                <div className="card-theme">&ldquo;{basket.theme}&rdquo;</div>
+                {!sameAsTitle(basket.name, basket.theme) && (
+                  <div className="card-theme">&ldquo;{basket.theme}&rdquo;</div>
+                )}
               </div>
               <span className="ticker">{basket.symbol}</span>
-            </div>
-
-            <div className="weights">
-              {basket.tickers.map((ticker) => (
-                <span key={ticker} style={{flex: 1}} />
-              ))}
             </div>
 
             <div className="pills">
@@ -96,7 +96,11 @@ export default function BasketGallery({baskets, limit}: {baskets: Basket[]; limi
                   {ticker}
                 </span>
               ))}
-              <span className="pill">{basket.supply.replace(/\.0+$/, "")} shares</span>
+              <span className="pill">
+                {Number(basket.supply) === 0
+                  ? "nobody has bought yet"
+                  : `${basket.supply.replace(/\.0+$/, "")} shares`}
+              </span>
               {basket.feeBps > 0 && (
                 <span className="pill">{basket.feeBps / 100}% to creator</span>
               )}

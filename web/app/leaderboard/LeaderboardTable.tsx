@@ -70,7 +70,15 @@ const sameAsName = (name: string, theme: string) =>
 
 export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; explorerBase: string}) {
   const {account} = useWallet();
-  const [sort, setSort] = useState<SortKey>("tvlUsd");
+  /*
+   * Ranked by money in, not by value held.
+   *
+   * Value needs prices, which arrive after hydration — defaulting to it meant the first
+   * paint was a column of dashes in an arbitrary order. `moneyIn` comes from the
+   * baskets' own counters in the server render, so the table is correct immediately and
+   * never reorders itself under the reader.
+   */
+  const [sort, setSort] = useState<SortKey>("moneyIn");
 
   const tokens = useMemo(
     () => [...new Set(rows.flatMap((row) => row.holdings.map((h) => h.token.toLowerCase())))],
@@ -155,21 +163,16 @@ export default function LeaderboardTable({rows, explorerBase}: {rows: Row[]; exp
                     {title(row.name)}
                     {mine && <span className="mine">yours</span>}
                   </Link>
-                  {!sameAsName(row.name, row.theme) && (
-                    <div className="board-theme">&ldquo;{row.theme}&rdquo;</div>
-                  )}
                   <div className="board-meta">
-                    {row.tickers.join(" · ") || "—"}
-                    <span className="board-sep">
-                      {row.feeBps > 0 ? `${(row.feeBps / 100).toFixed(2)}% fee` : "no fee"}
-                    </span>
-                    <span className="board-sep">
+                    <span>{row.tickers.join(" · ") || "—"}</span>
+                    <span>{row.feeBps > 0 ? `${(row.feeBps / 100).toFixed(2)}% fee` : "no fee"}</span>
+                    <span>
                       by{" "}
                       <a className="mono link" href={`${explorerBase}address/${row.creator}`}>
                         {short(row.creator)}
                       </a>
                     </span>
-                    {row.version === 1 && <span className="board-sep">v1 basket</span>}
+                    {row.version === 1 && <span>v1 basket</span>}
                   </div>
                 </td>
 
